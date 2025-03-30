@@ -40,6 +40,8 @@
 // To do binary file operations storing the current setup
 #include <fstream>
 
+#include "csvfile.h"
+
 class MBSWvalue_dt
 {
 public:
@@ -105,6 +107,9 @@ private:
 	std::vector<MinMaxMBSWvalue_dt> _minmaxData;
 	std::vector<unsigned int> _tableRowPosIndexes; /* index of the row at which the MB/SW is displayed in the values-table-widget */
 	bool _MBSWreading;
+
+	// pointer to csv file object
+	csvfile *csv = nullptr;
 
 	void setupTimeModeUiElements();
 	bool validateMBSWselection(const std::vector<MBSWmetadata_dt>& MBSWmetaList);

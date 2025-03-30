@@ -363,6 +363,38 @@ bool CUcontent_MBsSWs::startMBSWreading()
 	}
 	else
 		goto err;
+
+	// create csv object and write header
+	csv = new csvfile("test.csv");
+
+	// write header
+	for (size_t i=0; i < _MBSWmetaList.size(); i++)
+	{
+		const MBSWmetadata_dt& metadata = _MBSWmetaList.at(i);
+		
+		std::string title;
+		std::string unit;
+
+		// find title and units
+		if (metadata.blockType == BlockType::MB)
+		{
+			const mb_dt& mb = _supportedMBs.at(metadata.nativeIndex);
+			title = mb.title.toStdString();
+			unit = mb.unit.toStdString();
+		}
+		else if (metadata.blockType == BlockType::SW)
+		{
+			const sw_dt& sw = _supportedSWs.at(metadata.nativeIndex);
+			title = sw.title.toStdString();
+			unit = sw.unit.toStdString();
+		}
+
+		// write to file
+		*csv << title + " (" + unit + ")";
+
+	}
+	*csv << endrow;
+
 	// Reset old data:
 	_lastValues.clear();
 	_minmaxData.clear();
@@ -410,6 +442,8 @@ bool CUcontent_MBsSWs::stopMBSWreading()
 		}
 	}
 	disconnect( _SSMPdev, SIGNAL( newMBSWrawValues(const std::vector<unsigned int>&, int) ), this, SLOT( processMBSWRawValues(const std::vector<unsigned int>&, int) ) );
+	// close csv files (also flushes csv)
+	delete csv;
 	// Set text+icon of start/stop-button:
 	labelStartStopButtonReadyForStart();
 	// Enable delete button if MBs/SWs are selected on the table:
@@ -711,6 +745,13 @@ void CUcontent_MBsSWs::processMBSWRawValues(const std::vector<unsigned int>& raw
 	_valuesTableView->updateMBSWvalues(valueStrList, minValueStrList, maxValueStrList, unitStrList);
 	// Output refresh duration:
 	updateTimeInfo(refreshduration_ms);
+
+	// write to csv
+	for (size_t i=0; i < valueStrList.size(); i++) {
+		std::string value = valueStrList.at(i).toStdString();
+		*csv << value;
+	}
+	*csv << endrow;
 }
 
 
