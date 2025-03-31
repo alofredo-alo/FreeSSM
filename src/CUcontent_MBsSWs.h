@@ -40,6 +40,8 @@
 // To do binary file operations storing the current setup
 #include <fstream>
 
+#include <chrono>
+
 #include "csvfile.h"
 
 class MBSWvalue_dt
@@ -110,6 +112,8 @@ private:
 
 	// pointer to csv file object
 	csvfile *csv = nullptr;
+	// measurement start time (default ot current time)
+	std::chrono::high_resolution_clock::time_point startTime;
 
 	void setupTimeModeUiElements();
 	bool validateMBSWselection(const std::vector<MBSWmetadata_dt>& MBSWmetaList);

@@ -1,4 +1,12 @@
-#pragma once
+/**
+ * csvfile.h - Utility for writing CSV files
+ *
+ * Based on this github gist: https://gist.github.com/rudolfovich/f250900f1a833e715260a66c87369d15
+ */
+
+#ifndef CSVFILE_H
+#define CSVFILE_H
+
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -60,6 +68,12 @@ public:
         return write(escape(val));
     }
 
+    csvfile& operator<<(std::ios_base& (*manip)(std::ios_base&))
+    {
+        fs_ << manip;
+        return *this;
+    }
+
     template<typename T>
     csvfile& operator << (const T& val)
     {
@@ -110,3 +124,5 @@ inline static csvfile& flush(csvfile& file)
     file.flush();
     return file;
 }
+
+#endif

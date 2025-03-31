@@ -364,8 +364,17 @@ bool CUcontent_MBsSWs::startMBSWreading()
 	else
 		goto err;
 
+	// store start time
+	startTime = std::chrono::high_resolution_clock::now();
+
 	// create csv object and write header
-	csv = new csvfile("test.csv");
+	csv = new csvfile("measurements.csv");
+
+	// global time
+	*csv << "Time";
+
+	// time since measurement
+	*csv << "Delta Time";
 
 	// write header
 	for (size_t i=0; i < _MBSWmetaList.size(); i++)
@@ -747,11 +756,26 @@ void CUcontent_MBsSWs::processMBSWRawValues(const std::vector<unsigned int>& raw
 	updateTimeInfo(refreshduration_ms);
 
 	// write to csv
+	
+	// get timestamp	
+	const auto currTime = std::chrono::high_resolution_clock::now();
+	const std::chrono::duration<double> deltaTime = currTime - startTime;
+
+	// conver to unix epoch time in ms
+	const double unixEpochMs = std::chrono::duration_cast<std::chrono::milliseconds>
+		(currTime.time_since_epoch()).count() / 1000.0;
+	const double deltaEpochMs = std::chrono::duration_cast<std::chrono::milliseconds>
+		(deltaTime).count() / 1000.0;
+
+	// save to csv	
+	*csv << std::fixed << unixEpochMs;
+	*csv << deltaEpochMs;
 	for (size_t i=0; i < valueStrList.size(); i++) {
 		std::string value = valueStrList.at(i).toStdString();
 		*csv << value;
 	}
 	*csv << endrow;
+	csv->flush();
 }
 
 
