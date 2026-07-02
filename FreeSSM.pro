@@ -48,6 +48,7 @@ HEADERS += src/FreeSSM.h \
            src/CUcontent_DCs_engine.h \
            src/CUcontent_DCs_twoMemories.h \
            src/CUcontent_DCs_stopCodes.h \
+           src/LocalIdentifier.h \
            src/CUcontent_MBsSWs.h \
            src/CUcontent_MBsSWs_tableView.h \
            src/CUcontent_Adjustments.h \
@@ -89,6 +90,7 @@ SOURCES += src/main.cpp \
            src/SSMP2communication_core.cpp \
            src/AbstractSSMcommunication.cpp \
            src/SSMprotocol.cpp \
+           src/SSM3protocolTPMS.cpp \
            src/SSMprotocol1.cpp \
            src/SSMprotocol2.cpp \
            src/AddMBsSWsDlg.cpp \
