@@ -15,6 +15,7 @@ HEADERS += src/FreeSSM.h \
            src/Languages.h \
            src/CmdLine.h \
            src/EngineDialog.h \
+           src/TPMSdialog.h \
            src/TransmissionDialog.h \
            src/ABSdialog.h \
            src/CruiseControlDialog.h \
@@ -49,6 +50,7 @@ HEADERS += src/FreeSSM.h \
            src/CUcontent_DCs_twoMemories.h \
            src/CUcontent_DCs_stopCodes.h \
            src/LocalIdentifier.h \
+           src/CUcontent_LocalIdentifiers.h \
            src/CUcontent_MBsSWs.h \
            src/CUcontent_MBsSWs_tableView.h \
            src/CUcontent_Adjustments.h \
@@ -70,6 +72,7 @@ SOURCES += src/main.cpp \
            src/FreeSSM.cpp \
            src/CmdLine.cpp \
            src/EngineDialog.cpp \
+           src/TPMSdialog.cpp \
            src/TransmissionDialog.cpp \
            src/ABSdialog.cpp \
            src/CruiseControlDialog.cpp \
@@ -102,6 +105,7 @@ SOURCES += src/main.cpp \
            src/CUcontent_DCs_engine.cpp \
            src/CUcontent_DCs_twoMemories.cpp \
            src/CUcontent_DCs_stopCodes.cpp \
+           src/CUcontent_LocalIdentifiers.cpp \
            src/CUcontent_MBsSWs.cpp \
            src/CUcontent_MBsSWs_tableView.cpp \
            src/CUcontent_Adjustments.cpp \
