@@ -77,17 +77,17 @@ static int runJ2534Probe()
 			continue;
 		}
 
-		J2534DiagInterface interface;
-		if (!interface.open(library.path))
+		J2534DiagInterface diagInterface;
+		if (!diagInterface.open(library.path))
 		{
-			std::cout << "  RESULT: FAIL - " << interface.lastError() << "\n";
+			std::cout << "  RESULT: FAIL - " << diagInterface.lastError() << "\n";
 			continue;
 		}
 
-		std::cout << "  Device: " << interface.name() << "\n"
-		          << "  Version: " << interface.version() << "\n";
-		const std::string openWarning = interface.lastError();
-		if (interface.close())
+		std::cout << "  Device: " << diagInterface.name() << "\n"
+		          << "  Version: " << diagInterface.version() << "\n";
+		const std::string openWarning = diagInterface.lastError();
+		if (diagInterface.close())
 		{
 			if (openWarning.empty())
 				std::cout << "  RESULT: PASS\n";
@@ -96,7 +96,7 @@ static int runJ2534Probe()
 			passedAny = true;
 		}
 		else
-			std::cout << "  RESULT: FAIL on close - " << interface.lastError() << "\n";
+			std::cout << "  RESULT: FAIL on close - " << diagInterface.lastError() << "\n";
 	}
 	return passedAny ? NOERROR : ERROR_J2534PROBE;
 }
