@@ -59,7 +59,15 @@ jobs:
           Copy-Item .\background.png, .\LiberationSans-*.ttf, .\LICENSE.txt, `
             .\README.J2534-Windows.md $dist
           Copy-Item .\definitions $dist -Recurse
-          windeployqt.exe --release --no-translations --dir $dist `
+          $qtRoot = "C:\Qt\5.15.2\mingw81_64"
+          $qtPluginPath = Join-Path $qtRoot "plugins"
+          $platformPlugin = Join-Path $qtPluginPath "platforms\qwindows.dll"
+          if (-not (Test-Path $platformPlugin)) {
+            throw "Qt platform plugin was not installed: $platformPlugin"
+          }
+          $env:QT_PLUGIN_PATH = $qtPluginPath
+          & (Join-Path $qtRoot "bin\windeployqt.exe") `
+            --release --no-translations --dir $dist `
             (Join-Path $dist "FreeSSM.exe")
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $commit = git rev-parse HEAD
