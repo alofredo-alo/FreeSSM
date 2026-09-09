@@ -65,11 +65,27 @@ jobs:
           if (-not (Test-Path $platformPlugin)) {
             throw "Qt platform plugin was not installed: $platformPlugin"
           }
-          $env:QT_PLUGIN_PATH = $qtPluginPath
           & (Join-Path $qtRoot "bin\windeployqt.exe") `
-            --release --no-translations --dir $dist `
+            --release --no-translations --no-plugins --dir $dist `
             (Join-Path $dist "FreeSSM.exe")
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $qtPlugins = @(
+            @{ Path = "platforms\qwindows.dll"; Required = $true },
+            @{ Path = "styles\qwindowsvistastyle.dll"; Required = $false },
+            @{ Path = "imageformats\qgif.dll"; Required = $false },
+            @{ Path = "imageformats\qico.dll"; Required = $false },
+            @{ Path = "imageformats\qjpeg.dll"; Required = $false }
+          )
+          foreach ($plugin in $qtPlugins) {
+            $source = Join-Path $qtPluginPath $plugin.Path
+            if (-not (Test-Path $source)) {
+              if ($plugin.Required) { throw "Required Qt plugin is missing: $source" }
+              continue
+            }
+            $destination = Join-Path $dist (Split-Path $plugin.Path -Parent)
+            New-Item -ItemType Directory -Force -Path $destination | Out-Null
+            Copy-Item $source $destination
+          }
           $commit = git rev-parse HEAD
           $appHash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist "FreeSSM.exe")).Hash
           $brokerHash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist "j2534_broker.exe")).Hash
