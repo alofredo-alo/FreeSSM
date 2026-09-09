@@ -109,15 +109,16 @@ Qt Creator etc. might work as well).
 
 4.2 BUILDING A 32 OR 64 BIT APPLICATION ?
 
-If you are going to use a J2534-interface, you should check if the interface
-library is available as 32 and/or 64 bit version.
-32 bit libraries can only be used by a 32 bit application and 64 bit libraries
-can only be used by a 64 bit application.
-At least on MS Windows, most libraries are still available as 32bit version only.
-So you likely prefer to build a 32 bit application here.
+If you are going to use a J2534-interface, check which architecture its vendor
+library provides. A 32 bit library cannot be loaded directly by a 64 bit process.
+This fork's 64 bit Windows build handles 32 bit J2534 04.04 libraries through the
+included 32 bit j2534_broker.exe. A 32 bit FreeSSM build still loads them directly.
 
 To build a 32 (64) bit application on MS Windows, you have to use
 the 32 (64) bit version of MinGW.
+
+OpenPort 2.0 build, packaging and read-only test instructions are in
+README.J2534-Windows.md.
 
 4.3 COMPILATION STEPS (COMMAND LINE):
 

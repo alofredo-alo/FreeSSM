@@ -26,13 +26,13 @@
 
 #include <string>
 #include <vector>
-#include "..\J2534.h"
+#include "../J2534.h"
 #include <cstring>		// memset(), strcpy(), ...
 extern "C"
 {
 	#include "windows.h"
 }
-#include "J2534misc.h"
+#include "../J2534misc.h"
 
 
 class J2534_API
@@ -45,6 +45,7 @@ public:
 	bool selectLibrary(std::string libPath);
 	std::string library();
 	J2534_API_version libraryAPIversion();
+	std::string lastError();
 
 	long PassThruOpen(void* pName, unsigned long *pDeviceID);	// 0404-API
 	long PassThruClose(unsigned long DeviceID);			// 0404-API
@@ -67,6 +68,7 @@ public:
 private:
 	HINSTANCE _J2534LIB;
 	std::string _lib_path;
+	std::string _last_error;
 	J2534_API_version _api_version;
 
 	J2534_PassThruOpen _PassThruOpen;
@@ -88,10 +90,10 @@ private:
 	J2534_PassThruSetProgrammingVoltage_0404 _PassThruSetProgrammingVoltage_0404;
 
 	void assignJ2534fcns();
-	static std::vector<J2534Library> searchLibValuesRecursive(HKEY hKey, std::vector<J2534Library> PTlibs);
+	static void searchRegistryView(REGSAM viewFlag, J2534_library_architecture architecture, std::vector<J2534Library>& PTlibs);
+	static void searchLibValuesRecursive(HKEY hKey, REGSAM viewFlag, J2534_library_architecture architecture, std::vector<J2534Library>& PTlibs);
 
 };
 
 
 #endif
-

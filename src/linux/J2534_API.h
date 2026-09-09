@@ -46,6 +46,7 @@ public:
 	bool selectLibrary(std::string libPath);
 	std::string library();
 	J2534_API_version libraryAPIversion();
+	std::string lastError();
 
 	long PassThruOpen(void* pName, unsigned long *pDeviceID);	// 0404-API
 	long PassThruClose(unsigned long DeviceID);			// 0404-API
@@ -68,6 +69,7 @@ public:
 private:
 	void *_J2534LIB;
 	std::string _lib_path;
+	std::string _last_error;
 	J2534_API_version _api_version;
 
 	J2534_PassThruOpen _PassThruOpen;

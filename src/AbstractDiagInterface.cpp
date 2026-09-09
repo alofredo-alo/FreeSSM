@@ -44,6 +44,12 @@ std::string AbstractDiagInterface::version()
 }
 
 
+std::string AbstractDiagInterface::lastError()
+{
+	return _lastError;
+}
+
+
 std::vector<AbstractDiagInterface::protocol_type> AbstractDiagInterface::supportedProtocols()
 {
 	return _supportedProtocols;
@@ -92,6 +98,12 @@ void AbstractDiagInterface::setVersion(std::string version)
 }
 
 
+void AbstractDiagInterface::setLastError(std::string error)
+{
+	_lastError = error;
+}
+
+
 void AbstractDiagInterface::setSupportedProtocols(std::vector<AbstractDiagInterface::protocol_type> protocols)
 {
 	_supportedProtocols = protocols;
@@ -131,4 +143,3 @@ std::string AbstractDiagInterface::protocolDescription(protocol_type protocol)
 			return "UNKNOWN";
 	}
 }
-

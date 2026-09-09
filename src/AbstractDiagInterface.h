@@ -40,6 +40,7 @@ public:
 	virtual bool close() = 0;
 	std::string name();
 	std::string version();
+	std::string lastError();
 	std::vector<protocol_type> supportedProtocols();
 	std::vector<std::string> supportedProtocolsDescriptions();
 	protocol_type protocolType();
@@ -56,6 +57,7 @@ public:
 protected:
 	void setName(std::string name);
 	void setVersion(std::string version);
+	void setLastError(std::string error);
 	void setSupportedProtocols(std::vector<protocol_type> protocols);
 	void setProtocolType(protocol_type protocoltype);
 	void setProtocolBaudrate(unsigned int baudrate);
@@ -63,6 +65,7 @@ protected:
 private:
 	std::string _name;
 	std::string _version;
+	std::string _lastError;
 	std::vector<protocol_type> _supportedProtocols;
 	protocol_type _protocoltype;
 	unsigned int _protocol_baudrate;

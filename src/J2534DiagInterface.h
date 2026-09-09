@@ -24,7 +24,7 @@
 #include <string>
 #include "AbstractDiagInterface.h"
 #ifdef __WIN32__
-	#include "windows\J2534_API.h"
+	#include "windows/J2534_API.h"
 #elif defined __linux__
 	#include "linux/J2534_API.h"
 #else
@@ -59,6 +59,8 @@ private:
 	unsigned long _ChannelID;
 	unsigned long _FilterID[10];	// SAE J2534 allows max. 10 filters
 	unsigned char _numFilters;
+	std::string errorDescription(const std::string& operation, long ret);
+	void rememberError(const std::string& operation, long ret);
 
 #ifdef __FSSM_DEBUG__
 	void printErrorDescription(std::string title, long ret);

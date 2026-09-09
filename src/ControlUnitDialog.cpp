@@ -19,6 +19,7 @@
 
 #include "ControlUnitDialog.h"
 #include "CmdLine.h"
+#include "DiagnosticSafety.h"
 #include "SSMprotocol1.h"
 #include "SSMprotocol2.h"
 #include "ClearMemoryDlg.h"
@@ -46,7 +47,10 @@ ControlUnitDialog::ControlUnitDialog(QString title, AbstractDiagInterface *diagI
 	//   GNOME 3 at least: this also enables fast window management e.g. "View split on left" (Super-Left), "... right" (Super-Right)
 	setWindowFlags( Qt::Window );
 	// Set window and dialog titles:
-	setWindowTitle("FreeSSM " + QApplication::applicationVersion() + " - " + title);
+	QString applicationTitle = "FreeSSM " + QApplication::applicationVersion();
+	if (DiagnosticSafety::isReadOnly())
+		applicationTitle += " [READ-ONLY]";
+	setWindowTitle(applicationTitle + " - " + title);
 	title_label->setText(title);
 #ifndef SMALL_RESOLUTION
 	// Apply quirk for GTK+-Layout:
@@ -221,6 +225,15 @@ bool ControlUnitDialog::setup(ContentSelection csel, QStringList cmdline_args)
 
 	if (_setup_done)
 		return false;
+	if (DiagnosticSafety::isReadOnly() &&
+	    ((csel == ContentSelection::AdjustmentsMode) ||
+	     (csel == ContentSelection::SysTestsMode) ||
+	     (csel == ContentSelection::ClearMemoryFcn) ||
+	     (csel == ContentSelection::ClearMemory2Fcn)))
+	{
+		CmdLine::printError("selected function is disabled by --read-only");
+		return false;
+	}
 	if (!contentSupported(csel))
 	{
 		CmdLine::printError("function not supported by the selected Control Unit.");
@@ -302,12 +315,15 @@ bool ControlUnitDialog::setup(ContentSelection csel, QStringList cmdline_args)
 		goto commError;
 	// ***** Prepare the Control Unit *****:
 	// Check if we need to stop the automatic actuator test:
-	if (!_SSMPdev->hasActuatorTests(&supported))
-		goto commError;
-	if (supported)
+	if (!DiagnosticSafety::isReadOnly())
 	{
-		if (!handleActuatorTests(&initstatusmsgbox))
+		if (!_SSMPdev->hasActuatorTests(&supported))
 			goto commError;
+		if (supported)
+		{
+			if (!handleActuatorTests(&initstatusmsgbox))
+				goto commError;
+		}
 	}
 	// ***** Enable content selection buttons *****:
 	if (contentSupported(ContentSelection::ClearMemoryFcn))
@@ -588,6 +604,12 @@ bool ControlUnitDialog::getModeForContentSelection(ContentSelection csel, Mode *
 
 void ControlUnitDialog::setContentSelectionButtonEnabled(ContentSelection csel, bool enabled)
 {
+	if (DiagnosticSafety::isReadOnly() &&
+	    ((csel == ContentSelection::AdjustmentsMode) ||
+	     (csel == ContentSelection::SysTestsMode) ||
+	     (csel == ContentSelection::ClearMemoryFcn) ||
+	     (csel == ContentSelection::ClearMemory2Fcn)))
+		enabled = false;
 	if (_contentSelectionButtons.contains(csel))
 		_contentSelectionButtons.value(csel)->setEnabled(enabled);
 }

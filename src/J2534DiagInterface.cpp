@@ -19,6 +19,50 @@
 
 #include "J2534DiagInterface.h"
 #include <cstring>	// strlen()
+#include <iomanip>
+#include <sstream>
+
+
+namespace
+{
+	const char *j2534StatusName(long status)
+	{
+		switch (status)
+		{
+		case STATUS_NOERROR: return "STATUS_NOERROR";
+		case ERR_NOT_SUPPORTED: return "ERR_NOT_SUPPORTED";
+		case ERR_INVALID_CHANNEL_ID: return "ERR_INVALID_CHANNEL_ID";
+		case ERR_INVALID_PROTOCOL_ID: return "ERR_INVALID_PROTOCOL_ID";
+		case ERR_NULL_PARAMETER: return "ERR_NULL_PARAMETER";
+		case ERR_INVALID_IOCTL_VALUE: return "ERR_INVALID_IOCTL_VALUE";
+		case ERR_INVALID_FLAGS: return "ERR_INVALID_FLAGS";
+		case ERR_FAILED: return "ERR_FAILED";
+		case ERR_DEVICE_NOT_CONNECTED: return "ERR_DEVICE_NOT_CONNECTED";
+		case ERR_TIMEOUT: return "ERR_TIMEOUT";
+		case ERR_INVALID_MSG: return "ERR_INVALID_MSG";
+		case ERR_INVALID_TIME_INTERVAL: return "ERR_INVALID_TIME_INTERVAL";
+		case ERR_EXCEEDED_LIMIT: return "ERR_EXCEEDED_LIMIT";
+		case ERR_INVALID_MSG_ID: return "ERR_INVALID_MSG_ID";
+		case ERR_DEVICE_IN_USE: return "ERR_DEVICE_IN_USE";
+		case ERR_INVALID_IOCTL_ID: return "ERR_INVALID_IOCTL_ID";
+		case ERR_BUFFER_EMPTY: return "ERR_BUFFER_EMPTY";
+		case ERR_BUFFER_FULL: return "ERR_BUFFER_FULL";
+		case ERR_BUFFER_OVERFLOW: return "ERR_BUFFER_OVERFLOW";
+		case ERR_PIN_INVALID: return "ERR_PIN_INVALID";
+		case ERR_CHANNEL_IN_USE: return "ERR_CHANNEL_IN_USE";
+		case ERR_MSG_PROTOCOL_ID: return "ERR_MSG_PROTOCOL_ID";
+		case ERR_INVALID_FILTER_ID: return "ERR_INVALID_FILTER_ID";
+		case ERR_NO_FLOW_CONTROL: return "ERR_NO_FLOW_CONTROL";
+		case ERR_NOT_UNIQUE: return "ERR_NOT_UNIQUE";
+		case ERR_INVALID_BAUDRATE: return "ERR_INVALID_BAUDRATE";
+		case ERR_INVALID_DEVICE_ID: return "ERR_INVALID_DEVICE_ID";
+		case J2534API_ERROR_FCN_NOT_SUPPORTED: return "FUNCTION_NOT_EXPORTED";
+		case J2534API_ERROR_INVALID_LIBRARY: return "INVALID_LIBRARY";
+		case J2534API_ERROR_BROKER_TRANSPORT: return "BROKER_TRANSPORT_ERROR";
+		default: return "UNKNOWN_J2534_STATUS";
+		}
+	}
+}
 
 
 J2534DiagInterface::J2534DiagInterface()
@@ -50,13 +94,18 @@ AbstractDiagInterface::interface_type J2534DiagInterface::interfaceType()
 bool J2534DiagInterface::open( std::string name )
 {
 	long ret = 0;
+	setLastError("");
 
 	if (_j2534 != NULL)
+	{
+		setLastError("The J2534 interface is already open.");
 		return false;
+	}
 	// Select J2534-library:
 	_j2534 = new J2534_API;
 	if (!_j2534->selectLibrary(name))
 	{
+		setLastError(_j2534->lastError());
 #ifdef __FSSM_DEBUG__
 		std::cout << "Error: invalid library selected\n";
 #endif
@@ -71,6 +120,7 @@ bool J2534DiagInterface::open( std::string name )
 		ret = _j2534->PassThruOpen(NULL, &_DeviceID);
 		if (STATUS_NOERROR != ret)
 		{
+			rememberError("PassThruOpen", ret);
 #ifdef __FSSM_DEBUG__
 			printErrorDescription("PassThruOpen() failed: ", ret);
 #endif
@@ -97,8 +147,10 @@ bool J2534DiagInterface::open( std::string name )
 		std::cout << "   API version:      " << ApiVersion << '\n';
 #endif
 	}
-#ifdef __FSSM_DEBUG__
 	else
+		rememberError("PassThruReadVersion", ret);
+#ifdef __FSSM_DEBUG__
+	if (STATUS_NOERROR != ret)
 		printErrorDescription("PassThruReadVersion() failed: ", ret);
 #endif
 	// Get and save library data:
@@ -142,7 +194,10 @@ bool J2534DiagInterface::close()
 	long ret = 0;
 
 	if (_j2534 == NULL)
+	{
+		setLastError("The J2534 interface is not open.");
 		return false;
+	}
 	if (_connected)
 		disconnect();
 	// Close interface (only 0404-API):
@@ -151,6 +206,7 @@ bool J2534DiagInterface::close()
 		ret = _j2534->PassThruClose(_DeviceID);
 		if (STATUS_NOERROR != ret)
 		{
+			rememberError("PassThruClose", ret);
 #ifdef __FSSM_DEBUG__
 			printErrorDescription("PassThruClose() failed: ", ret);
 #endif
@@ -172,9 +228,18 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 	unsigned long Flags = 0;
 	unsigned long BaudRate = 0;
 	long ret = 0;
+	setLastError("");
 
 	if (_j2534 == NULL)
+	{
+		setLastError("The J2534 interface is not open.");
 		return false;
+	}
+	if (_connected)
+	{
+		setLastError("A J2534 protocol channel is already connected.");
+		return false;
+	}
 	// CHECK PROTOCOL AND SET UP PARAMETERS
 	if ((protocol == AbstractDiagInterface::protocol_type::SSM2_ISO14230) ||
 	    (protocol == AbstractDiagInterface::protocol_type::SSM3_ISO14230))
@@ -192,6 +257,7 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 	}
 	else
 	{
+		setLastError("The selected Subaru protocol is not implemented by the J2534 backend.");
 #ifdef __FSSM_DEBUG__
 		std::cout << "Error: selected protocol is not supported\n";
 #endif
@@ -204,6 +270,7 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 		ret = _j2534->PassThruConnect(_DeviceID, ProtocolID, Flags, BaudRate, &_ChannelID);
 	if (STATUS_NOERROR != ret)
 	{
+		rememberError("PassThruConnect", ret);
 #ifdef __FSSM_DEBUG__
 		printErrorDescription("PassThruConnect() failed: ", ret);
 #endif
@@ -224,6 +291,7 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 	ret = _j2534->PassThruIoctl(_ChannelID, SET_CONFIG, (void *)&Input, (void *)NULL);
 	if (STATUS_NOERROR != ret)
 	{
+		rememberError("PassThruIoctl(SET_CONFIG/LOOPBACK)", ret);
 #ifdef __FSSM_DEBUG__
 		printErrorDescription("PassThruIoctl() for parameter LOOPBACK failed: ", ret);
 #endif
@@ -241,7 +309,10 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 		printErrorDescription("PassThruIoctl() for parameter DATARATE failed: ", ret);
 #endif
 		if (_j2534->libraryAPIversion() == J2534_API_version::v0202)
+		{
+			rememberError("PassThruIoctl(SET_CONFIG/DATA_RATE)", ret);
 			goto err_close;
+		}
 	}
 	if ((protocol == AbstractDiagInterface::protocol_type::SSM2_ISO14230) ||
 	    (protocol == AbstractDiagInterface::protocol_type::SSM3_ISO14230))
@@ -377,8 +448,10 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 		MaskMsg.ProtocolID = ISO9141;
 		PatternMsg.DataSize = 1;
 		PatternMsg.ProtocolID = ISO9141;
-		if (STATUS_NOERROR != _j2534->PassThruStartMsgFilter(_ChannelID, PASS_FILTER, &MaskMsg, &PatternMsg, NULL, _FilterID))
+		ret = _j2534->PassThruStartMsgFilter(_ChannelID, PASS_FILTER, &MaskMsg, &PatternMsg, NULL, _FilterID);
+		if (STATUS_NOERROR != ret)
 		{
+			rememberError("PassThruStartMsgFilter(ISO9141)", ret);
 #ifdef __FSSM_DEBUG__
 			printErrorDescription("PassThruStartMsgFilter() for ISO-14230 failed: ", ret);
 #endif
@@ -418,8 +491,10 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 		FlowCtrlMsg.DataSize = 4;
 		FlowCtrlMsg.ProtocolID = ISO15765;
 		FlowCtrlMsg.TxFlags = ISO15765_FRAME_PAD;
-		if (STATUS_NOERROR != _j2534->PassThruStartMsgFilter(_ChannelID, FLOW_CONTROL_FILTER, &MaskMsg, &PatternMsg, &FlowCtrlMsg, _FilterID + _numFilters))
+		ret = _j2534->PassThruStartMsgFilter(_ChannelID, FLOW_CONTROL_FILTER, &MaskMsg, &PatternMsg, &FlowCtrlMsg, _FilterID + _numFilters);
+		if (STATUS_NOERROR != ret)
 		{
+			rememberError("PassThruStartMsgFilter(ISO15765/ECU)", ret);
 #ifdef __FSSM_DEBUG__
 			printErrorDescription("PassThruStartMsgFilter() #1 for ISO-15765 failed: ", ret);
 #endif
@@ -429,8 +504,10 @@ bool J2534DiagInterface::connect(AbstractDiagInterface::protocol_type protocol)
 		// TCU:
 		PatternMsg.Data[3] =  '\xE9';
 		FlowCtrlMsg.Data[3] = '\xE1';
-		if (STATUS_NOERROR != _j2534->PassThruStartMsgFilter(_ChannelID, FLOW_CONTROL_FILTER, &MaskMsg, &PatternMsg, &FlowCtrlMsg, _FilterID + _numFilters))
+		ret = _j2534->PassThruStartMsgFilter(_ChannelID, FLOW_CONTROL_FILTER, &MaskMsg, &PatternMsg, &FlowCtrlMsg, _FilterID + _numFilters);
+		if (STATUS_NOERROR != ret)
 		{
+			rememberError("PassThruStartMsgFilter(ISO15765/TCU)", ret);
 #ifdef __FSSM_DEBUG__
 			printErrorDescription("PassThruStartMsgFilter() #2 for ISO-15765 failed: ", ret);
 #endif
@@ -474,7 +551,10 @@ bool J2534DiagInterface::disconnect()
 	long ret = 0;
 
 	if (!_connected)
+	{
+		setLastError("No J2534 protocol channel is connected.");
 		return false;
+	}
 	// Remove filters:
 	for (unsigned char k=0; k<_numFilters; k++)
 	{
@@ -489,6 +569,7 @@ bool J2534DiagInterface::disconnect()
 	ret = _j2534->PassThruDisconnect(_ChannelID);
 	if (STATUS_NOERROR != ret)
 	{
+		rememberError("PassThruDisconnect", ret);
 #ifdef __FSSM_DEBUG__
 		printErrorDescription("PassThruDisconnect() failed: ", ret);
 #endif
@@ -508,7 +589,10 @@ bool J2534DiagInterface::read(std::vector<char> *buffer)
 	long ret = 0;
 
 	if (!_connected)
+	{
+		setLastError("No J2534 protocol channel is connected.");
 		return false;
+	}
 	// Setup message-container:
 	PASSTHRU_MSG *rx_msgs = new(std::nothrow) PASSTHRU_MSG[num_PTMSGS];
 	if (rx_msgs == NULL)
@@ -547,6 +631,12 @@ bool J2534DiagInterface::read(std::vector<char> *buffer)
 			// Process received messages:
 			for (unsigned long i=0; i<rxNumMsgs; i++)
 			{
+				if (rx_msgs[i].DataSize > sizeof(rx_msgs[i].Data))
+				{
+					setLastError("PassThruReadMsgs returned a message larger than the J2534 buffer.");
+					delete[] rx_msgs;
+					return false;
+				}
 #ifdef __FSSM_DEBUG__
 				std::cout << "  PASSTHRU_MSG #" << i
 						<< ": protocol id 0x" << std::hex << rx_msgs[i].ProtocolID << ", rx status 0x" << rx_msgs[i].RxStatus
@@ -629,6 +719,7 @@ bool J2534DiagInterface::read(std::vector<char> *buffer)
 	else
 		printErrorDescription("PassThruReadMsgs() failed: ", ret);
 #endif
+	rememberError("PassThruReadMsgs", ret);
 	delete[] rx_msgs;
 	return false;
 }
@@ -641,7 +732,10 @@ bool J2534DiagInterface::write(std::vector<char> buffer)
 	long ret = 0;
 
 	if (!_connected)
+	{
+		setLastError("No J2534 protocol channel is connected.");
 		return false;
+	}
 	// Setup message:
 	PASSTHRU_MSG tx_msg;
 	memset(&tx_msg, 0, sizeof(tx_msg));
@@ -656,7 +750,13 @@ bool J2534DiagInterface::write(std::vector<char> buffer)
 			tx_msg.TxFlags = ISO15765_FRAME_PAD;
 			break;
 		default:
+			setLastError("The active J2534 protocol cannot transmit this message.");
 			return false;
+	}
+	if (buffer.size() > sizeof(tx_msg.Data))
+	{
+		setLastError("The outgoing J2534 message exceeds the PassThru buffer size.");
+		return false;
 	}
 	std::copy(buffer.begin(), buffer.end(), tx_msg.Data);
 	tx_msg.DataSize = buffer.size();
@@ -664,6 +764,7 @@ bool J2534DiagInterface::write(std::vector<char> buffer)
 	ret = _j2534->PassThruWriteMsgs(_ChannelID, &tx_msg, &txNumMsgs, timeout);
 	if (ret != STATUS_NOERROR)
 	{
+		rememberError("PassThruWriteMsgs", ret);
 #ifdef __FSSM_DEBUG__
 		printErrorDescription("PassThruWriteMsgs() failed: ", ret);
 #endif
@@ -677,10 +778,14 @@ bool J2534DiagInterface::write(std::vector<char> buffer)
 bool J2534DiagInterface::clearSendBuffer()
 {
 	if (!_connected)
+	{
+		setLastError("No J2534 protocol channel is connected.");
 		return false;
+	}
 	long ret = _j2534->PassThruIoctl(_ChannelID, CLEAR_TX_BUFFER, (void *)NULL, (void *)NULL);
 	if (STATUS_NOERROR != ret)
 	{
+		rememberError("PassThruIoctl(CLEAR_TX_BUFFER)", ret);
 #ifdef __FSSM_DEBUG__
 		printErrorDescription("PassThruIoctl() for parameter CLEAR_TX_BUFFER failed: ", ret);
 #endif
@@ -693,10 +798,14 @@ bool J2534DiagInterface::clearSendBuffer()
 bool J2534DiagInterface::clearReceiveBuffer()
 {
 	if (!_connected)
+	{
+		setLastError("No J2534 protocol channel is connected.");
 		return false;
+	}
 	long ret = _j2534->PassThruIoctl(_ChannelID, CLEAR_RX_BUFFER, (void *)NULL, (void *)NULL);
 	if (STATUS_NOERROR != ret)
 	{
+		rememberError("PassThruIoctl(CLEAR_RX_BUFFER)", ret);
 #ifdef __FSSM_DEBUG__
 		printErrorDescription("PassThruIoctl() for parameter CLEAR_RX_BUFFER failed: ", ret);
 #endif
@@ -707,41 +816,33 @@ bool J2534DiagInterface::clearReceiveBuffer()
 
 // Private
 
+std::string J2534DiagInterface::errorDescription(const std::string& operation, long ret)
+{
+	std::ostringstream message;
+	message << operation << " failed: " << j2534StatusName(ret) << " (" << std::dec << ret;
+	if (ret >= 0)
+		message << "/0x" << std::uppercase << std::hex << ret;
+	message << ")";
+
+	if (((ret > 0) || (ret == J2534API_ERROR_BROKER_TRANSPORT)) && _j2534)
+	{
+		char driverDescription[256] = {0,};
+		_j2534->PassThruGetLastError(driverDescription);
+		if (driverDescription[0])
+			message << ": " << driverDescription;
+	}
+	return message.str();
+}
+
+
+void J2534DiagInterface::rememberError(const std::string& operation, long ret)
+{
+	setLastError(errorDescription(operation, ret));
+}
+
 #ifdef __FSSM_DEBUG__
 void J2534DiagInterface::printErrorDescription(std::string title, long ret)
 {
-	char ErrorDescription[80] = {0,};
-	std::cout << title << "error " << ret << ": ";
-	if (ret > 0)
-	{
-		long ptgeterr_ret = _j2534->PassThruGetLastError(ErrorDescription);
-		/* NOTE: some interface libraries do not follow the spec and return incorrect status codes
-		         (not STATUS_NOERROR), so always print the returned description				*/
-		if (strlen(ErrorDescription) > 0)
-			std::cout << ErrorDescription;
-		else
-			std::cout << "";
-		std::cout << std::endl;
-		if (ptgeterr_ret != STATUS_NOERROR)
-		{
-			 // NOTE: ERR_NULL_PARAMETER isn't possible
-			std::cout << "Warning: PassThruGetLastError() failed with error " << ptgeterr_ret << ", which is a bug in the J2534-library !" << std::endl;
-		}
-		else if (!strlen(ErrorDescription))
-			std::cout << "Warning: PassThruGetLastError() succeeded but returned an empty description string !" << std::endl;
-	}
-	else if (ret == J2534API_ERROR_FCN_NOT_SUPPORTED)
-	{
-		std::cout << "the library does not support this function\n";
-	}
-	else if (ret == J2534API_ERROR_INVALID_LIBRARY)
-	{
-		std::cout << "invalid library selected\n";
-	}
-	else	// BUG !
-	{
-		std::cout << "unknown error\n";
-	}
+	std::cout << errorDescription(title, ret) << std::endl;
 }
 #endif
-

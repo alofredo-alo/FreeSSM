@@ -28,6 +28,7 @@
 #define NOERROR			 0
 #define ERROR_APPRUNNING	-1
 #define ERROR_BADCMDLINEARGS	-2
+#define ERROR_J2534PROBE		-3
 
 
 class CmdLine
@@ -45,7 +46,6 @@ private:
 };
 
 #endif
-
 
 
 

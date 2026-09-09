@@ -19,13 +19,14 @@
 
 
 #include "J2534misc.h"
+#include <cctype>
 
 
 static std::string toupper(const std::string& s)
 {
 	std::string result(s.length(), '\0');
 	for (size_t i = 0; i < result.length(); ++i)
-		result[i] = toupper(s[i]);
+		result[i] = static_cast<char>(std::toupper(static_cast<unsigned char>(s[i])));
 	return result;
 }
 
@@ -65,17 +66,26 @@ std::string J2534misc::apiVersionToStr(const J2534_API_version api)
 	}
 }
 
-#ifdef __J2534_API_DEBUG__
+std::string J2534misc::architectureToStr(const J2534_library_architecture architecture)
+{
+	switch (architecture) {
+	case J2534_library_architecture::x86: return "32-bit";
+	case J2534_library_architecture::x64: return "64-bit";
+	default: return "unknown architecture";
+	}
+}
+
 std::vector<std::string> J2534misc::protocolsToStrings(const J2534_protocol_flags pflags)
 {
 	std::vector<std::string> vs;
-	for (const std::pair<std::string, J2534_protocol_flags>& pair : protocolsMap) {
+	for (const auto& pair : protocolsMap) {
 		if (bool(pflags & pair.second))
 			vs.push_back(pair.first);
 	}
 	return vs;
 }
 
+#ifdef __J2534_API_DEBUG__
 void J2534misc::printLibraryInfo(const std::vector<J2534Library>& PTlibraries)
 {
 	const size_t libcount = PTlibraries.size();
@@ -89,6 +99,7 @@ void J2534misc::printLibraryInfo(const std::vector<J2534Library>& PTlibraries)
 		std::cout << "\n  Name:        " << lib.name;
 		std::cout << "\n  Path:        " << lib.path;
 		std::cout << "\n  API-version: " << apiVersionToStr(lib.api);
+		std::cout << "\n  Architecture: " << architectureToStr(lib.architecture);
 		std::cout << "\n  Protocols:   ";
 
 		const std::vector<std::string> protocolStrings = protocolsToStrings(lib.protocols);

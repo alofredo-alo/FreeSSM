@@ -19,6 +19,8 @@
 
 
 #include "SSMP2communication_core.h"
+#include "DiagnosticSafety.h"
+#include <cstring>
 
 
 SSMP2communication_core::SSMP2communication_core(AbstractDiagInterface *diagInterface)
@@ -261,6 +263,13 @@ SSMP2communication_core::Result SSMP2communication_core::SndRcvMessage(const uns
 		return Result::error;
 	if (request.size() < 1)
 		return Result::error;
+	if (DiagnosticSafety::isReadOnly())
+	{
+		const unsigned char service = static_cast<unsigned char>(request.at(0));
+		if ((service != 0xBF) && (service != 0xAA) &&
+		    (service != 0xA0) && (service != 0xA8))
+			return Result::error;
+	}
 	std::vector<char> msg_buffer;
 	// SETUP COMPLETE MESSAGE:
 	// Protocol-header

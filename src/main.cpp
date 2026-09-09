@@ -24,6 +24,82 @@
 #include <QtGui>
 #include "FreeSSM.h"
 #include "CmdLine.h"
+#include "DiagnosticSafety.h"
+#include <iostream>
+#include <cstring>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <cstdio>
+
+static void attachProbeConsole(int argc, char *argv[])
+{
+	bool probeRequested = false;
+	for (int i = 1; i < argc; ++i)
+		probeRequested = probeRequested || (std::strcmp(argv[i], "--j2534-probe") == 0);
+	if (!probeRequested)
+		return;
+
+	/* Release builds use the Windows GUI subsystem. Attach only for the explicit
+	 * probe, so normal GUI launches do not open a console window. */
+	if (!AttachConsole(ATTACH_PARENT_PROCESS) && GetLastError() != ERROR_ACCESS_DENIED)
+		return;
+	std::freopen("CONOUT$", "w", stdout);
+	std::freopen("CONOUT$", "w", stderr);
+}
+#endif
+
+
+static int runJ2534Probe()
+{
+	const std::vector<J2534Library> libraries = J2534_API::getAvailableJ2534Libs();
+	if (libraries.empty())
+	{
+		std::cerr << "J2534 probe: no registered drivers found.\n";
+		return ERROR_J2534PROBE;
+	}
+
+	bool passedAny = false;
+	for (const J2534Library& library : libraries)
+	{
+		std::cout << "J2534 driver: " << library.name << "\n"
+		          << "  DLL: " << library.path << "\n"
+		          << "  Registry architecture: " << J2534misc::architectureToStr(library.architecture) << "\n"
+		          << "  API: " << J2534misc::apiVersionToStr(library.api) << "\n"
+		          << "  Protocols:";
+		for (const std::string& protocol : J2534misc::protocolsToStrings(library.protocols))
+			std::cout << " " << protocol;
+		std::cout << "\n";
+
+		if (!library.compatibleWithApplication)
+		{
+			std::cout << "  RESULT: SKIP - DLL architecture does not match this FreeSSM build.\n";
+			continue;
+		}
+
+		J2534DiagInterface interface;
+		if (!interface.open(library.path))
+		{
+			std::cout << "  RESULT: FAIL - " << interface.lastError() << "\n";
+			continue;
+		}
+
+		std::cout << "  Device: " << interface.name() << "\n"
+		          << "  Version: " << interface.version() << "\n";
+		const std::string openWarning = interface.lastError();
+		if (interface.close())
+		{
+			if (openWarning.empty())
+				std::cout << "  RESULT: PASS\n";
+			else
+				std::cout << "  RESULT: PASS with warning - " << openWarning << "\n";
+			passedAny = true;
+		}
+		else
+			std::cout << "  RESULT: FAIL on close - " << interface.lastError() << "\n";
+	}
+	return passedAny ? NOERROR : ERROR_J2534PROBE;
+}
 
 
 
@@ -77,6 +153,9 @@ int main(int argc, char *argv[])
 	QStringList cmdline_args;
 	QStringList option_values;
 
+#ifdef _WIN32
+	attachProbeConsole(argc, argv);
+#endif
 	QApplication app(argc, argv);
 	// Get command line arguments and check if help message is requested
 	cmdline_args = QCoreApplication::arguments();
@@ -84,6 +163,24 @@ int main(int argc, char *argv[])
 	{
 		CmdLine::printHelp();
 		return NOERROR;
+	}
+	if (CmdLine::parseForOption(&cmdline_args, "", "--j2534-probe", &option_values))
+	{
+		if (!option_values.empty())
+		{
+			CmdLine::printError("option --j2534-probe does not accept values");
+			return ERROR_BADCMDLINEARGS;
+		}
+		return runJ2534Probe();
+	}
+	if (CmdLine::parseForOption(&cmdline_args, "", "--read-only", &option_values))
+	{
+		if (!option_values.empty())
+		{
+			CmdLine::printError("option --read-only does not accept values");
+			return ERROR_BADCMDLINEARGS;
+		}
+		DiagnosticSafety::setReadOnly(true);
 	}
 	// Validate command line option dependencies:
 	if (!CmdLine::validateOptionDependencies(cmdline_args))
@@ -144,4 +241,3 @@ int main(int argc, char *argv[])
 	delete freessm_mainwindow;
 	return ret;
 }
-

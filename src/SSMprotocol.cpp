@@ -18,6 +18,7 @@
  */
 
 #include "SSMprotocol.h"
+#include "DiagnosticSafety.h"
 
 #include <QElapsedTimer>
 #include <QThread>
@@ -1334,6 +1335,13 @@ bool SSMprotocol3::sendRequest(const std::vector<char>& payload,
 {
 	if ((payload.size() == 0) || (payload.size() > 0x3F) || (responsePayload == NULL))
 		return false;
+	if (DiagnosticSafety::isReadOnly())
+	{
+		const unsigned char service = static_cast<unsigned char>(payload.at(0));
+		if ((service != 0x81) && (service != 0x1A) &&
+		    (service != 0x21) && (service != 0x17))
+			return false;
+	}
 	responsePayload->clear();
 
 	std::vector<char> request;
@@ -1436,4 +1444,3 @@ bool SSMprotocol3::readLocalIdentifier(unsigned char identifier, unsigned int ex
 	data->assign(response.begin() + 2, response.begin() + 2 + expectedDataSize);
 	return true;
 }
-

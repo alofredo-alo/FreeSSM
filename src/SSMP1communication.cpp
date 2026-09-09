@@ -18,6 +18,7 @@
  */
 
 #include "SSMP1communication.h"
+#include "DiagnosticSafety.h"
 
 #include <QTimer>
 #include <QElapsedTimer>
@@ -126,13 +127,18 @@ bool SSMP1communication::readAddresses(const std::vector<unsigned int>& addr, st
 
 bool SSMP1communication::writeAddress(unsigned int addr, char databyte, char *databytewritten)
 {
+	if (DiagnosticSafety::isReadOnly())
+		return false;
 	if (databytewritten == NULL)
 		return writeAddresses(std::vector<unsigned int>(1, addr), std::vector<char>(1, databyte));
 	else
 	{
 		std::vector<char> databyteswritten;
 		bool ok = writeAddresses(std::vector<unsigned int>(1, addr), std::vector<char>(1, databyte), &databyteswritten);
-		*databytewritten = databyteswritten.at(0);
+		if (ok && (databyteswritten.size() == 1))
+			*databytewritten = databyteswritten.at(0);
+		else
+			ok = false;
 		return ok;
 	}
 }
@@ -141,6 +147,8 @@ bool SSMP1communication::writeAddress(unsigned int addr, char databyte, char *da
 bool SSMP1communication::writeAddresses(std::vector<unsigned int> addr, std::vector<char> data, std::vector<char> *databyteswritten)
 {
 	bool ok = false;
+	if (DiagnosticSafety::isReadOnly())
+		return false;
 	if ((_CommOperation != comOp::noCom) || isRunning()
 	    || (addr.size() == 0) || (data.size() == 0) || (addr.size() != data.size()))
 		return false;
@@ -196,6 +204,8 @@ bool SSMP1communication::writeAddress_permanent(unsigned int addr, char databyte
 
 bool SSMP1communication::writeAddresses_permanent(std::vector<unsigned int> addr, std::vector<char> data, int delay)
 {
+	if (DiagnosticSafety::isReadOnly())
+		return false;
 	if ((_CommOperation != comOp::noCom) || isRunning()
 	    || (addr.size() == 0) || (data.size() == 0) || (addr.size() != data.size()))
 		return false;
@@ -423,5 +433,3 @@ void SSMP1communication::run()
 	std::cout << "SSMP1communication::run():   communication operation finished.\n";
 #endif
 }
-
-

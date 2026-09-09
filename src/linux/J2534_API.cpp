@@ -43,6 +43,7 @@ J2534_API::J2534_API()
 	_PassThruIoctl = NULL;
 	_PassThruSetProgrammingVoltage_0202 = NULL;
 	_PassThruSetProgrammingVoltage_0404 = NULL;
+	_last_error.clear();
 }
 
 
@@ -63,14 +64,21 @@ J2534_API::~J2534_API()
 
 bool J2534_API::selectLibrary(std::string libPath)
 {
-	if (!libPath.size()) return false;
+	_last_error.clear();
+	if (!libPath.size())
+	{
+		_last_error = "No J2534 library path was supplied.";
+		return false;
+	}
 	void *newJ2534LIB = NULL;
+	dlerror();
 	newJ2534LIB = dlopen( libPath.c_str(), RTLD_LAZY | RTLD_GLOBAL );	// RTLD_GLOBAL ???
 	if (newJ2534LIB)
 	{
 		// Check if library is a valid J2534-library:
 		if (!dlsym( newJ2534LIB, "PassThruConnect" ) || !dlsym( newJ2534LIB, "PassThruDisconnect" ))
 		{
+			_last_error = "The selected library does not export PassThruConnect and PassThruDisconnect.";
 #ifdef __J2534_API_DEBUG__
 			std::cout << "J2534interface::selectLibrary(): Error: the library doesn't provide the PassThruConnect(), and/or PassThruDisconnect() methods !\n";
 			if (dlclose( newJ2534LIB ))
@@ -100,11 +108,15 @@ bool J2534_API::selectLibrary(std::string libPath)
 		_lib_path = libPath;
 		assignJ2534fcns();
 	}
-#ifdef __J2534_API_DEBUG__
 	else
-		std::cout << "J2534interface::selectLibrary(): dlopen() failed with error " << dlerror() << "\n";
+	{
+		const char *error = dlerror();
+		_last_error = error ? error : "dlopen failed for the selected J2534 library.";
+#ifdef __J2534_API_DEBUG__
+		std::cout << "J2534interface::selectLibrary(): " << _last_error << "\n";
 #endif
-	return newJ2534LIB;
+	}
+	return newJ2534LIB != NULL;
 }
 
 
@@ -120,6 +132,12 @@ std::string J2534_API::library()
 J2534_API_version J2534_API::libraryAPIversion()
 {
 	return _api_version;
+}
+
+
+std::string J2534_API::lastError()
+{
+	return _last_error;
 }
 
 
@@ -151,7 +169,7 @@ void J2534_API::assignJ2534fcns()
 	_PassThruStartMsgFilter = reinterpret_cast< J2534_PassThruStartMsgFilter >( dlsym( _J2534LIB, "PassThruStartMsgFilter" ) );
 	_PassThruStopMsgFilter = reinterpret_cast< J2534_PassThruStopMsgFilter >( dlsym( _J2534LIB, "PassThruStopMsgFilter" ) );
 	_PassThruWriteMsgs = reinterpret_cast< J2534_PassThruWriteMsgs >( dlsym( _J2534LIB, "PassThruWriteMsgs" ) );
-	_PassThruStartPeriodicMsg = reinterpret_cast< J2534_PassThruStartPeriodicMsg >( dlsym( _J2534LIB, "PassThruStartPeriodicMsgs" ) );
+	_PassThruStartPeriodicMsg = reinterpret_cast< J2534_PassThruStartPeriodicMsg >( dlsym( _J2534LIB, "PassThruStartPeriodicMsg" ) );
 	_PassThruStopPeriodicMsg = reinterpret_cast< J2534_PassThruStopPeriodicMsg >( dlsym( _J2534LIB, "PassThruStopPeriodicMsg" ) );
 	_PassThruIoctl = reinterpret_cast< J2534_PassThruIoctl >( dlsym( _J2534LIB, "PassThruIoctl" ) );
 }

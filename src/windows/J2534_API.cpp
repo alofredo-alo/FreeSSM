@@ -18,6 +18,90 @@
  */
 
 #include "J2534_API.h"
+#include <algorithm>
+#include <cctype>
+#include <sstream>
+
+
+namespace
+{
+	template<typename T>
+	T resolve(HINSTANCE library, const char *name)
+	{
+		FARPROC raw = GetProcAddress(library, name);
+		T result = NULL;
+		static_assert(sizeof(result) == sizeof(raw), "unexpected Windows function pointer size");
+		memcpy(&result, &raw, sizeof(result));
+		return result;
+	}
+
+	std::string windowsErrorMessage(DWORD error)
+	{
+		char *buffer = NULL;
+		const DWORD size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		                                  NULL, error, 0, reinterpret_cast<char *>(&buffer), 0, NULL);
+		std::string message = size && buffer ? std::string(buffer, size) : std::string();
+		if (buffer)
+			LocalFree(buffer);
+		while (!message.empty() && ((message.back() == '\r') || (message.back() == '\n') || (message.back() == ' ')))
+			message.pop_back();
+		return message;
+	}
+
+	std::string registryString(const unsigned char *data, DWORD dataSize, DWORD dataType)
+	{
+		size_t length = 0;
+		while ((length < dataSize) && data[length])
+			++length;
+		const std::string value(reinterpret_cast<const char *>(data), length);
+		if ((dataType != REG_EXPAND_SZ) || value.empty())
+			return value;
+
+		const DWORD required = ExpandEnvironmentStringsA(value.c_str(), NULL, 0);
+		if (!required)
+			return value;
+		std::vector<char> expanded(required, '\0');
+		return ExpandEnvironmentStringsA(value.c_str(), expanded.data(), required) ? std::string(expanded.data()) : value;
+	}
+
+	void addProtocolsFromString(const std::string& value, J2534_protocol_flags& protocols)
+	{
+		std::string token;
+		for (size_t i = 0; i <= value.size(); ++i)
+		{
+			const unsigned char c = (i < value.size()) ? static_cast<unsigned char>(value[i]) : 0;
+			if (std::isalnum(c) || (c == '_'))
+				token.push_back(static_cast<char>(c));
+			else if (!token.empty())
+			{
+				protocols = protocols | J2534misc::parseProtocol(token);
+				token.clear();
+			}
+		}
+	}
+
+	void addLibraryIfUnique(const J2534Library& candidate, std::vector<J2534Library>& libraries)
+	{
+		for (J2534Library& existing : libraries)
+		{
+			if (_stricmp(existing.path.c_str(), candidate.path.c_str()) == 0)
+			{
+				existing.protocols = existing.protocols | candidate.protocols;
+				if (existing.name.empty())
+					existing.name = candidate.name;
+				if (candidate.api == J2534_API_version::v0404)
+					existing.api = candidate.api;
+				if (candidate.compatibleWithApplication)
+				{
+					existing.architecture = candidate.architecture;
+					existing.compatibleWithApplication = true;
+				}
+				return;
+			}
+		}
+		libraries.push_back(candidate);
+	}
+}
 
 
 
@@ -42,6 +126,7 @@ J2534_API::J2534_API()
 	_PassThruIoctl = NULL;
 	_PassThruSetProgrammingVoltage_0202 = NULL;
 	_PassThruSetProgrammingVoltage_0404 = NULL;
+	_last_error.clear();
 }
 
 
@@ -61,16 +146,37 @@ J2534_API::~J2534_API()
 
 bool J2534_API::selectLibrary(std::string libPath)
 {
-	if (!libPath.size()) return false;
+	_last_error.clear();
+	if (!libPath.size())
+	{
+		_last_error = "No J2534 library path was supplied.";
+		return false;
+	}
 	HINSTANCE newJ2534LIB = NULL;
+	SetLastError(ERROR_SUCCESS);
 	newJ2534LIB = LoadLibraryA( libPath.c_str() );
 	if (newJ2534LIB)
 	{
 		// Check if library is a valid J2534-library:
-		if (!GetProcAddress( newJ2534LIB, "PassThruConnect" ) || !GetProcAddress( newJ2534LIB, "PassThruDisconnect" ))
+		const char *requiredFunctions[] = {
+			"PassThruConnect", "PassThruDisconnect", "PassThruReadVersion", "PassThruGetLastError",
+			"PassThruReadMsgs", "PassThruStartMsgFilter", "PassThruStopMsgFilter", "PassThruWriteMsgs", "PassThruIoctl"
+		};
+		std::string missingFunctions;
+		for (const char *functionName : requiredFunctions)
 		{
+			if (!GetProcAddress(newJ2534LIB, functionName))
+			{
+				if (!missingFunctions.empty())
+					missingFunctions += ", ";
+				missingFunctions += functionName;
+			}
+		}
+		if (!missingFunctions.empty())
+		{
+			_last_error = "The selected DLL is not a usable J2534 library. Missing exports: " + missingFunctions;
 #ifdef __J2534_API_DEBUG__
-			std::cout << "J2534interface::selectLibrary(): Error: the library doesn't provide the PassThruConnect(), and/or PassThruDisconnect() methods !\n";
+			std::cout << "J2534interface::selectLibrary(): " << _last_error << "\n";
 			if (!FreeLibrary( newJ2534LIB ))
 				std::cout << "J2534interface::selectLibrary(): FreeLibrary() failed with error " << GetLastError() << "\n";
 #else
@@ -98,11 +204,23 @@ bool J2534_API::selectLibrary(std::string libPath)
 		_lib_path = libPath;
 		assignJ2534fcns();
 	}
-#ifdef __J2534_API_DEBUG__
 	else
-		std::cout << "J2534interface::selectLibrary(): LoadLibrary() failed with error " << GetLastError() << "\n";
+	{
+		const DWORD error = GetLastError();
+		std::ostringstream message;
+		message << "LoadLibrary failed for '" << libPath << "' (Windows error " << error << ")";
+		const std::string systemMessage = windowsErrorMessage(error);
+		if (!systemMessage.empty())
+			message << ": " << systemMessage;
+		if (error == ERROR_BAD_EXE_FORMAT)
+			message << ". The J2534 DLL architecture does not match this " << (sizeof(void *) == 8 ? "64-bit" : "32-bit") << " FreeSSM build.";
+		_last_error = message.str();
+	}
+#ifdef __J2534_API_DEBUG__
+	if (!newJ2534LIB)
+		std::cout << "J2534interface::selectLibrary(): " << _last_error << "\n";
 #endif
-	return newJ2534LIB;
+	return newJ2534LIB != NULL;
 }
 
 
@@ -121,15 +239,21 @@ J2534_API_version J2534_API::libraryAPIversion()
 }
 
 
+std::string J2534_API::lastError()
+{
+	return _last_error;
+}
+
+
 void J2534_API::assignJ2534fcns()
 {
-	_PassThruOpen = reinterpret_cast< J2534_PassThruOpen >( GetProcAddress( _J2534LIB, "PassThruOpen" ) );
-	_PassThruClose = reinterpret_cast< J2534_PassThruClose >( GetProcAddress( _J2534LIB, "PassThruClose" ) );
+	_PassThruOpen = resolve<J2534_PassThruOpen>(_J2534LIB, "PassThruOpen");
+	_PassThruClose = resolve<J2534_PassThruClose>(_J2534LIB, "PassThruClose");
 	if (_api_version == J2534_API_version::v0202)
 	{
-		_PassThruConnect_0202 = reinterpret_cast< J2534_PassThruConnect_0202 >( GetProcAddress( _J2534LIB, "PassThruConnect" ) );
-		_PassThruReadVersion_0202 = reinterpret_cast< J2534_PassThruReadVersion_0202 >( GetProcAddress( _J2534LIB, "PassThruReadVersion" ) );
-		_PassThruSetProgrammingVoltage_0202 = reinterpret_cast< J2534_PassThruSetProgrammingVoltage_0202 >( GetProcAddress( _J2534LIB, "PassThruSetProgrammingVoltage" ) );
+		_PassThruConnect_0202 = resolve<J2534_PassThruConnect_0202>(_J2534LIB, "PassThruConnect");
+		_PassThruReadVersion_0202 = resolve<J2534_PassThruReadVersion_0202>(_J2534LIB, "PassThruReadVersion");
+		_PassThruSetProgrammingVoltage_0202 = resolve<J2534_PassThruSetProgrammingVoltage_0202>(_J2534LIB, "PassThruSetProgrammingVoltage");
 		_PassThruConnect_0404 = NULL;
 		_PassThruReadVersion_0404 = NULL;
 		_PassThruSetProgrammingVoltage_0404 = NULL;
@@ -139,163 +263,154 @@ void J2534_API::assignJ2534fcns()
 		_PassThruConnect_0202 = NULL;
 		_PassThruReadVersion_0202 = NULL;
 		_PassThruSetProgrammingVoltage_0202 = NULL;
-		_PassThruConnect_0404 = reinterpret_cast< J2534_PassThruConnect_0404 >( GetProcAddress( _J2534LIB, "PassThruConnect" ) );
-		_PassThruReadVersion_0404 = reinterpret_cast< J2534_PassThruReadVersion_0404 >( GetProcAddress( _J2534LIB, "PassThruReadVersion" ) );
-		_PassThruSetProgrammingVoltage_0404 = reinterpret_cast< J2534_PassThruSetProgrammingVoltage_0404 >( GetProcAddress( _J2534LIB, "PassThruSetProgrammingVoltage" ) );
+		_PassThruConnect_0404 = resolve<J2534_PassThruConnect_0404>(_J2534LIB, "PassThruConnect");
+		_PassThruReadVersion_0404 = resolve<J2534_PassThruReadVersion_0404>(_J2534LIB, "PassThruReadVersion");
+		_PassThruSetProgrammingVoltage_0404 = resolve<J2534_PassThruSetProgrammingVoltage_0404>(_J2534LIB, "PassThruSetProgrammingVoltage");
 	}
-	_PassThruDisconnect = reinterpret_cast< J2534_PassThruDisconnect >( GetProcAddress( _J2534LIB, "PassThruDisconnect" ) );
-	_PassThruGetLastError = reinterpret_cast< J2534_PassThruGetLastError >( GetProcAddress( _J2534LIB, "PassThruGetLastError" ) );
-	_PassThruReadMsgs = reinterpret_cast< J2534_PassThruReadMsgs >( GetProcAddress( _J2534LIB, "PassThruReadMsgs" ) );
-	_PassThruStartMsgFilter = reinterpret_cast< J2534_PassThruStartMsgFilter >( GetProcAddress( _J2534LIB, "PassThruStartMsgFilter" ) );
-	_PassThruStopMsgFilter = reinterpret_cast< J2534_PassThruStopMsgFilter >( GetProcAddress( _J2534LIB, "PassThruStopMsgFilter" ) );
-	_PassThruWriteMsgs = reinterpret_cast< J2534_PassThruWriteMsgs >( GetProcAddress( _J2534LIB, "PassThruWriteMsgs" ) );
-	_PassThruStartPeriodicMsg = reinterpret_cast< J2534_PassThruStartPeriodicMsg >( GetProcAddress( _J2534LIB, "PassThruStartPeriodicMsgs" ) );
-	_PassThruStopPeriodicMsg = reinterpret_cast< J2534_PassThruStopPeriodicMsg >( GetProcAddress( _J2534LIB, "PassThruStopPeriodicMsg" ) );
-	_PassThruIoctl = reinterpret_cast< J2534_PassThruIoctl >( GetProcAddress( _J2534LIB, "PassThruIoctl" ) );
+	_PassThruDisconnect = resolve<J2534_PassThruDisconnect>(_J2534LIB, "PassThruDisconnect");
+	_PassThruGetLastError = resolve<J2534_PassThruGetLastError>(_J2534LIB, "PassThruGetLastError");
+	_PassThruReadMsgs = resolve<J2534_PassThruReadMsgs>(_J2534LIB, "PassThruReadMsgs");
+	_PassThruStartMsgFilter = resolve<J2534_PassThruStartMsgFilter>(_J2534LIB, "PassThruStartMsgFilter");
+	_PassThruStopMsgFilter = resolve<J2534_PassThruStopMsgFilter>(_J2534LIB, "PassThruStopMsgFilter");
+	_PassThruWriteMsgs = resolve<J2534_PassThruWriteMsgs>(_J2534LIB, "PassThruWriteMsgs");
+	_PassThruStartPeriodicMsg = resolve<J2534_PassThruStartPeriodicMsg>(_J2534LIB, "PassThruStartPeriodicMsg");
+	_PassThruStopPeriodicMsg = resolve<J2534_PassThruStopPeriodicMsg>(_J2534LIB, "PassThruStopPeriodicMsg");
+	_PassThruIoctl = resolve<J2534_PassThruIoctl>(_J2534LIB, "PassThruIoctl");
 }
 
 
 std::vector<J2534Library> J2534_API::getAvailableJ2534Libs()
 {
 	std::vector<J2534Library> PTlibraries;
-	HKEY hKey1, hKey2;
-	DWORD index = 0;
-	char KeyName[256] = "";
-	long ret = 0;
-
-	ret = RegOpenKeyExA(HKEY_LOCAL_MACHINE, ("Software"), 0, KEY_READ, &hKey1);
-	if (ret != ERROR_SUCCESS)
+	// J2534 drivers are frequently 32-bit even on 64-bit Windows. Search
+	// both registry views and list entries compatible with this process first.
+	if (sizeof(void *) == 8)
 	{
-#ifdef __J2534_API_DEBUG__
-		std::cout << "J2534interface::getAvailableJ2534Libs():   RegOpenKeyEx(...) for 'HKEY_LOCAL_MACHINE\\Software' failed with error " << ret << "\n";
-#endif
-		return PTlibraries;
+		searchRegistryView(KEY_WOW64_64KEY, J2534_library_architecture::x64, PTlibraries);
+		searchRegistryView(KEY_WOW64_32KEY, J2534_library_architecture::x86, PTlibraries);
 	}
-	// Search for keys "PassThruSupport", "PassThruSupport.04.04":
-	while ((RegEnumKeyA(hKey1, index, KeyName, 256)) != ERROR_NO_MORE_ITEMS)
+	else
 	{
-		if (!strncmp(KeyName, "PassThruSupport", 15))
-		{
-			ret = RegOpenKeyExA(hKey1, KeyName, 0, KEY_READ, &hKey2);   // "PassThruSupportXXX"
-			if (ret == ERROR_SUCCESS)   // "PassThruSupportXXX"
-			{
-				// Search for library data in all sub-keys (recursive)
-				PTlibraries = searchLibValuesRecursive(hKey2, PTlibraries);
-				ret = RegCloseKey(hKey2);
-#ifdef __J2534_API_DEBUG__
-				if (ret != ERROR_SUCCESS)
-					std::cout << "J2534interface::getAvailableJ2534Libs():   RegCloseKey(hKey2) failed with error " << ret << "\n";
-#endif
-			}
-#ifdef __J2534_API_DEBUG__
-			else
-				std::cout << "J2534interface::getAvailableJ2534Libs():   RegOpenKexEx(...) for key " << KeyName << " failed with error " << ret << "\n";
-#endif
-		}
-		index++;
+		searchRegistryView(KEY_WOW64_32KEY, J2534_library_architecture::x86, PTlibraries);
+		searchRegistryView(KEY_WOW64_64KEY, J2534_library_architecture::x64, PTlibraries);
 	}
-	ret = RegCloseKey(hKey1);
 #ifdef __J2534_API_DEBUG__
-	if (ret != ERROR_SUCCESS)
-		std::cout << "J2534interface::getAvailableJ2534Libs():   RegCloseKey(hKey1) failed with error " << ret << "\n";
 	J2534misc::printLibraryInfo(PTlibraries);
 #endif
 	return PTlibraries;
 }
 
 
-std::vector<J2534Library> J2534_API::searchLibValuesRecursive(HKEY hKey, std::vector<J2534Library> PTlibs)
+void J2534_API::searchRegistryView(REGSAM viewFlag, J2534_library_architecture architecture, std::vector<J2534Library>& PTlibs)
 {
-	HKEY hKey2;
-	DWORD index = 0;
-	char KeyName[256] = "";
+	HKEY softwareKey = NULL;
+	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE", 0, KEY_READ | viewFlag, &softwareKey) != ERROR_SUCCESS)
+		return;
+
+	DWORD subKeyCount = 0;
+	DWORD maxSubKeyLength = 0;
+	if (RegQueryInfoKeyA(softwareKey, NULL, NULL, NULL, &subKeyCount, &maxSubKeyLength, NULL,
+	                     NULL, NULL, NULL, NULL, NULL) != ERROR_SUCCESS)
+	{
+		RegCloseKey(softwareKey);
+		return;
+	}
+
+	std::vector<char> keyName(maxSubKeyLength + 2, '\0');
+	for (DWORD index = 0; index < subKeyCount; ++index)
+	{
+		DWORD keyNameLength = static_cast<DWORD>(keyName.size() - 1);
+		if (RegEnumKeyExA(softwareKey, index, keyName.data(), &keyNameLength, NULL, NULL, NULL, NULL) != ERROR_SUCCESS)
+			continue;
+		keyName[keyNameLength] = '\0';
+		if (_strnicmp(keyName.data(), "PassThruSupport", 15) != 0)
+			continue;
+
+		HKEY passThruKey = NULL;
+		if (RegOpenKeyExA(softwareKey, keyName.data(), 0, KEY_READ | viewFlag, &passThruKey) == ERROR_SUCCESS)
+		{
+			searchLibValuesRecursive(passThruKey, viewFlag, architecture, PTlibs);
+			RegCloseKey(passThruKey);
+		}
+	}
+	RegCloseKey(softwareKey);
+}
+
+
+void J2534_API::searchLibValuesRecursive(HKEY hKey, REGSAM viewFlag, J2534_library_architecture architecture, std::vector<J2534Library>& PTlibs)
+{
+	DWORD subKeyCount = 0;
+	DWORD maxSubKeyLength = 0;
+	DWORD valueCount = 0;
+	DWORD maxValueNameLength = 0;
+	DWORD maxValueDataLength = 0;
+	if (RegQueryInfoKeyA(hKey, NULL, NULL, NULL, &subKeyCount, &maxSubKeyLength, NULL,
+	                     &valueCount, &maxValueNameLength, &maxValueDataLength, NULL, NULL) != ERROR_SUCCESS)
+		return;
+
 	J2534Library PTlib;
 	PTlib.api = J2534_API_version::v0404;
-	char ValueName[256] = "";
-	unsigned long szValueName = 256;// variable that specifies the size (in characters, including the terminating null char) of the buffer pointed to by the "ValueName" parameter.
-	unsigned char Data[256] = "";	// buffer that receives the data for the value entry. This parameter can be NULL if the data is not required
-	unsigned long szData = 256;	// variable that specifies the size, in bytes, of the buffer pointed to by the lpData parameter.
-	long ret = 0;
-	unsigned long ValueDataType = REG_NONE;
-	// Check values :
-	while ((RegEnumValueA(hKey, index, ValueName, &szValueName, NULL, &ValueDataType, Data, &szData)) != ERROR_NO_MORE_ITEMS)
+	PTlib.architecture = architecture;
+	PTlib.compatibleWithApplication = ((sizeof(void *) == 8) && (architecture == J2534_library_architecture::x64)) ||
+	                                  ((sizeof(void *) == 4) && (architecture == J2534_library_architecture::x86));
+
+	std::vector<char> valueName(maxValueNameLength + 2, '\0');
+	std::vector<unsigned char> data(maxValueDataLength + 2, 0);
+	for (DWORD index = 0; index < valueCount; ++index)
 	{
-		if (ValueDataType == REG_SZ)
+		DWORD valueNameLength = static_cast<DWORD>(valueName.size() - 1);
+		DWORD dataSize = static_cast<DWORD>(data.size() - 1);
+		DWORD dataType = REG_NONE;
+		if (RegEnumValueA(hKey, index, valueName.data(), &valueNameLength, NULL,
+		                  &dataType, data.data(), &dataSize) != ERROR_SUCCESS)
+			continue;
+		valueName[valueNameLength] = '\0';
+		data[std::min<DWORD>(dataSize, static_cast<DWORD>(data.size() - 1))] = 0;
+
+		if ((dataType == REG_SZ) || (dataType == REG_EXPAND_SZ))
 		{
-			if (!strncmp(ValueName,"FunctionLibrary",15))
-			{
-				PTlib.path = (char*)(Data);
-			}
-			else if (!strncmp(ValueName,"Name",4))
-			{
-				PTlib.name = (char*)(Data);
-			}
-			else if (!strncmp(ValueName,"ProtocolsSupported",18))	// 02.02-API
+			const std::string value = registryString(data.data(), dataSize, dataType);
+			if (_stricmp(valueName.data(), "FunctionLibrary") == 0)
+				PTlib.path = value;
+			else if (_stricmp(valueName.data(), "Name") == 0)
+				PTlib.name = value;
+			else if (_stricmp(valueName.data(), "ProtocolsSupported") == 0)
 			{
 				PTlib.api = J2534_API_version::v0202;
-				std::string protocol_str = (char*)(Data);
-				// TODO split string, then use loop using existing parse function instead
-				if (protocol_str.find("J1850VPW") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::j1850vpw;
-				if (protocol_str.find("J1850PWM") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::j1850pwm;
-				if (protocol_str.find("ISO9141") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::iso9141;
-				if (protocol_str.find("ISO14230") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::iso14230;
-				if (protocol_str.find("ISO15765") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::iso15765;
-				if (protocol_str.find("CAN") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::can;
-				if (protocol_str.find("SCI_A_ENGINE") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::sci_a_engine;
-				if (protocol_str.find("SCI_A_TRANS") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::sci_a_trans;
-				if (protocol_str.find("SCI_B_ENGINE") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::sci_b_engine;
-				if (protocol_str.find("SCI_B_TRANS") != std::string::npos)
-					PTlib.protocols = PTlib.protocols | J2534_protocol_flags::sci_b_trans;
+				addProtocolsFromString(value, PTlib.protocols);
 			}
 		}
-		else if (ValueDataType == REG_DWORD)	// 04.04-API
+		else if ((dataType == REG_DWORD) && (dataSize >= sizeof(DWORD)))
 		{
-			PTlib.api = J2534_API_version::v0404;
-			DWORD key_value = (DWORD)(*Data);
-			if (key_value)
-			{
-				std::string protocol_str = (char*)(ValueName);
-				PTlib.protocols = PTlib.protocols | J2534misc::parseProtocol(protocol_str);
-			}
+			DWORD enabled = 0;
+			memcpy(&enabled, data.data(), sizeof(enabled));
+			if (enabled)
+				PTlib.protocols = PTlib.protocols | J2534misc::parseProtocol(valueName.data());
 		}
-		szValueName = 256;	// because RegEnumValue has changed value !
-		szData = 256;		// because RegEnumValue has changed value !
-		index++;
 	}
-	if (PTlib.path.size() > 0)
-		PTlibs.push_back( PTlib );
-	// Check sub-keys:
-	index = 0;
-	while (RegEnumKeyA(hKey, index, KeyName, 256) != ERROR_NO_MORE_ITEMS)
+
+	if (!PTlib.path.empty())
 	{
-		ret = RegOpenKeyExA(hKey, KeyName, 0, KEY_READ, &hKey2);
-		if (ret == ERROR_SUCCESS)
-		{
-			PTlibs = searchLibValuesRecursive(hKey2, PTlibs);
-			ret = RegCloseKey(hKey2);
-#ifdef __J2534_API_DEBUG__
-			if (ret != ERROR_SUCCESS)
-				std::cout << "J2534interface::searchLibValuesRecursive():   RegCloseKey(...) failed with error " << ret << "\n";
-#endif
-		}
-#ifdef __J2534_API_DEBUG__
-		else
-		{
-			std::cout << "J2534interface::getAvailableJ2534Libs():   RegOpenKexEx(...) for key " << KeyName << " failed with error " << ret << "\n";
-		}
-#endif
-		index++;
+		if (PTlib.name.empty())
+			PTlib.name = PTlib.path;
+		addLibraryIfUnique(PTlib, PTlibs);
 	}
-	return PTlibs;
+
+	std::vector<char> keyName(maxSubKeyLength + 2, '\0');
+	for (DWORD index = 0; index < subKeyCount; ++index)
+	{
+		DWORD keyNameLength = static_cast<DWORD>(keyName.size() - 1);
+		if (RegEnumKeyExA(hKey, index, keyName.data(), &keyNameLength, NULL, NULL, NULL, NULL) != ERROR_SUCCESS)
+			continue;
+		keyName[keyNameLength] = '\0';
+
+		HKEY childKey = NULL;
+		if (RegOpenKeyExA(hKey, keyName.data(), 0, KEY_READ | viewFlag, &childKey) == ERROR_SUCCESS)
+		{
+			searchLibValuesRecursive(childKey, viewFlag, architecture, PTlibs);
+			RegCloseKey(childKey);
+		}
+	}
 }
 
 

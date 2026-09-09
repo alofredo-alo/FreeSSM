@@ -18,6 +18,7 @@
  */
 
 #include "SSMP1base.h"
+#include "DiagnosticSafety.h"
 
 
 SSMP1commands::SSMP1commands(AbstractDiagInterface *diagInterface)
@@ -106,6 +107,8 @@ bool SSMP1commands::sendReadAddressCmd(SSM1_CUtype_dt cu, unsigned int dataaddr)
 
 bool SSMP1commands::sendWriteDatabyteCmd(unsigned int dataaddr, char databyte)
 {
+	if (DiagnosticSafety::isReadOnly())
+		return false;
 	if (dataaddr > 0xffff) return false;
 	char highbyte = (dataaddr & 0xffff) >> 8;
 	char lowbyte = dataaddr & 0xff;

@@ -31,9 +31,11 @@
 
 #define		J2534API_ERROR_FCN_NOT_SUPPORTED	-1
 #define		J2534API_ERROR_INVALID_LIBRARY		-2
+#define		J2534API_ERROR_BROKER_TRANSPORT		-3
 
 
 enum class J2534_API_version {undefined, v0202, v0404};
+enum class J2534_library_architecture {unknown, x86, x64};
 
 // cannot use ALL_CAPS because of macros in J2534.h
 enum class J2534_protocol_flags
@@ -69,6 +71,8 @@ public:
 	std::string name;
 	J2534_protocol_flags protocols {J2534_protocol_flags(0)};
 	J2534_API_version api {J2534_API_version::v0404};
+	J2534_library_architecture architecture {J2534_library_architecture::unknown};
+	bool compatibleWithApplication {true};
 };
 
 class J2534misc {
@@ -76,9 +80,10 @@ public:
 	static J2534_protocol_flags parseProtocol(const std::string& s);
 	static J2534_API_version parseApiVersion(const std::string& s);
 	static std::string apiVersionToStr(const J2534_API_version api);
+	static std::string architectureToStr(const J2534_library_architecture architecture);
+	static std::vector<std::string> protocolsToStrings(const J2534_protocol_flags pflags);
 
 #ifdef __J2534_API_DEBUG__
-	static std::vector<std::string> protocolsToStrings(const J2534_protocol_flags pflags);
 	static void printLibraryInfo(const std::vector<J2534Library>& PTlibraries);
 #endif
 

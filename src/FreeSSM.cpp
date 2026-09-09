@@ -19,6 +19,7 @@
 
 #include "FreeSSM.h"
 #include "CmdLine.h"
+#include "DiagnosticSafety.h"
 
 
 
@@ -45,8 +46,11 @@ FreeSSM::FreeSSM(QApplication *app)
 	_progtitle_label = new QLabel(this);
 	_progtitle_label->setGeometry(20, 17, 315, 34);
 	_progtitle_label->setFont( titlefont );
-	_progtitle_label->setText("FreeSSM " + QApplication::applicationVersion());
-	this->setWindowTitle("FreeSSM " + QApplication::applicationVersion());
+	QString applicationTitle = "FreeSSM " + QApplication::applicationVersion();
+	if (DiagnosticSafety::isReadOnly())
+		applicationTitle += " [READ-ONLY]";
+	_progtitle_label->setText(applicationTitle);
+	this->setWindowTitle(applicationTitle);
 	// PLACE WINDOW IN THE CENTER OF THE SCREEN:
 	QRect parent_geometry;
 #if QT_VERSION < 0x050000
@@ -805,4 +809,3 @@ void FreeSSM::closeEvent(QCloseEvent *event)
 	else
 		event->ignore();
 }
-

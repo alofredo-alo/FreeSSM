@@ -14,6 +14,7 @@ INCLUDEPATH += . src src/tinyxml
 HEADERS += src/FreeSSM.h \
            src/Languages.h \
            src/CmdLine.h \
+           src/DiagnosticSafety.h \
            src/EngineDialog.h \
            src/TPMSdialog.h \
            src/TransmissionDialog.h \
@@ -284,7 +285,23 @@ win32 {
                   src/windows/TimeM.h \
                   src/windows/J2534_API.h
        SOURCES += src/windows/serialCOM.cpp \
-                  src/windows/TimeM.cpp \
-                  src/windows/J2534_API.cpp
+                  src/windows/TimeM.cpp
+
+       # Most Subaru-capable J2534 DLLs, including Tactrix op20pt32.dll, are
+       # 32-bit. A 64-bit process cannot load them, so x64 builds relay calls
+       # through j2534_broker.exe. x86 builds load the vendor DLL directly.
+       contains(QT_ARCH, x86_64) {
+           message("64-bit target: J2534 access uses the 32-bit broker")
+           HEADERS += src/windows/J2534_broker_client.h
+           SOURCES += src/windows/J2534_broker_client.cpp \
+                      src/windows/J2534_API_broker.cpp
+           brokertarget.path = $$INSTALLDIR
+           brokertarget.files = j2534_broker.exe
+           brokertarget.CONFIG += no_check_exist
+           INSTALLS += brokertarget
+       } else {
+           message("32-bit target: J2534 libraries are loaded directly")
+           SOURCES += src/windows/J2534_API.cpp
+       }
        RC_FILE = resources/FreeSSM_WinAppIcon.rc
 }
