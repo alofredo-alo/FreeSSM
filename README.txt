@@ -117,8 +117,9 @@ included 32 bit j2534_broker.exe. A 32 bit FreeSSM build still loads them direct
 To build a 32 (64) bit application on MS Windows, you have to use
 the 32 (64) bit version of MinGW.
 
+The repository overview and portable Windows quick start are in README.md.
 OpenPort 2.0 build, packaging and read-only test instructions are in
-README.J2534-Windows.md.
+README.J2534-Windows.md (English) and README.J2534-Windows.es.md (Spanish).
 
 4.3 COMPILATION STEPS (COMMAND LINE):
 

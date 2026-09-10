@@ -1,5 +1,7 @@
 # FreeSSM J2534 on 64-bit Windows
 
+[Español](README.J2534-Windows.es.md) · [Main README](README.md)
+
 This fork runs FreeSSM as a 64-bit Qt application while loading 32-bit J2534
 04.04 vendor libraries, including Tactrix OpenPort 2.0, in a separate 32-bit
 broker. The broker uses anonymous pipes: it does not listen on a TCP/UDP port.

@@ -3,7 +3,7 @@ name: Windows J2534 package
 on:
   workflow_dispatch:
   push:
-    branches: [integration/next]
+    branches: [master, integration/next]
   pull_request:
     branches: [master]
 
@@ -57,7 +57,8 @@ jobs:
           Copy-Item $app (Join-Path $dist "FreeSSM.exe")
           Copy-Item .\j2534_broker.exe $dist
           Copy-Item .\background.png, .\LiberationSans-*.ttf, .\LICENSE.txt, `
-            .\README.J2534-Windows.md $dist
+            .\README.md, .\README.txt, .\README.J2534-Windows.md, `
+            .\README.J2534-Windows.es.md $dist
           Copy-Item .\definitions $dist -Recurse
           $qtRoot = "C:\Qt\5.15.2\mingw81_64"
           $qtBinPath = Join-Path $qtRoot "bin"
