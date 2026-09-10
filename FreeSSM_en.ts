@@ -1593,6 +1593,11 @@ Maybe the device is already in use by another application...</translation>
         <source>Turkish</source>
         <translation>Turkish</translation>
     </message>
+    <message>
+        <location filename="src/Languages.h" line="40"/>
+        <source>Spanish</source>
+        <translation>Spanish</translation>
+    </message>
 </context>
 <context>
     <name>MBSWcontent_Form</name>

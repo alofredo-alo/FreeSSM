@@ -21,6 +21,7 @@
 #define LANGUAGES_H
 
 
+#include <QLocale>
 #include <QVector>
 #include <QStringList>
 
@@ -29,14 +30,26 @@
 static const QVector<QLocale> __supportedLocales = QVector<QLocale>()
 	<< QLocale::English
 	<< QLocale::German
-	<< QLocale::Turkish;
+	<< QLocale::Turkish
+	<< QLocale::Spanish;
 	/* ===> ADD NEW LOCALES HERE <=== */
+
+static int supportedLocaleIndex(const QLocale& locale)
+{
+	for (int index = 0; index < __supportedLocales.size(); ++index)
+	{
+		if (__supportedLocales.at(index).language() == locale.language())
+			return index;
+	}
+	return -1;
+}
 
 /* Make language names translatable */
 #if 0
 QT_TRANSLATE_NOOP("Language", "English")
 QT_TRANSLATE_NOOP("Language", "German")
 QT_TRANSLATE_NOOP("Language", "Turkish")
+QT_TRANSLATE_NOOP("Language", "Spanish")
 /* ===> ADD NEW LANGUAGE NAMES HERE <=== */
 #endif
 

@@ -22,6 +22,21 @@
 #include "DiagnosticSafety.h"
 
 
+namespace
+{
+	bool loadQtTranslation(QTranslator *translator, const QString& language)
+	{
+		const QString catalog = "qt_" + language;
+		const QString qtTranslationsPath = QLibraryInfo::location(QLibraryInfo::TranslationsPath);
+		if (!qtTranslationsPath.isEmpty() && translator->load(catalog, qtTranslationsPath))
+			return true;
+
+		const QString applicationPath = QCoreApplication::applicationDirPath();
+		return (applicationPath != qtTranslationsPath) && translator->load(catalog, applicationPath);
+	}
+}
+
+
 
 FreeSSM::FreeSSM(QApplication *app)
 {
@@ -117,7 +132,7 @@ FreeSSM::FreeSSM(QApplication *app)
 	// CHECK SAVED LANGUAGE:
 	bool sl_valid = false;
 	QLocale loc = QLocale(savedlanguage);
-	if ((loc != QLocale::C) && (__supportedLocales.indexOf( loc ) > -1))
+	if ((loc != QLocale::C) && (supportedLocaleIndex(loc) > -1))
 	{
 		_language = savedlanguage;
 		sl_valid = true;
@@ -125,7 +140,7 @@ FreeSSM::FreeSSM(QApplication *app)
 	// TRY TO SELECT SYSTEM LANGUAGE, IF SAVED LANGUAGE IS INVALID:
 	if (!sl_valid)
 	{
-		if (__supportedLocales.indexOf( QLocale::system() ) > -1)
+		if (supportedLocaleIndex(QLocale::system()) > -1)
 			_language = QLocale::system().name().section('_', 0, 0);
 	}
 	// SET TRANSLATOR AND RETRANSLATE:
@@ -159,11 +174,8 @@ FreeSSM::FreeSSM(QApplication *app)
 	// SET Qt-TRANSLATOR (if necessary and available):
 	if (_language != "en")
 	{
-		QString qt_ts_path = QLibraryInfo::location(QLibraryInfo::TranslationsPath);
-		if (qt_ts_path.isEmpty())
-			qt_ts_path = QCoreApplication::applicationDirPath();
 		_qt_translator = new QTranslator;
-		if (_qt_translator->load("qt_" + _language, qt_ts_path))
+		if (loadQtTranslation(_qt_translator, _language))
 			app->installTranslator(_qt_translator);
 		else
 		{
@@ -505,11 +517,8 @@ void FreeSSM::retranslate(QString newlanguage, QTranslator *newtranslator)
 	}
 	if (newlanguage != "en")
 	{
-		QString qt_ts_path = QLibraryInfo::location(QLibraryInfo::TranslationsPath);
-		if (qt_ts_path.isEmpty())
-			qt_ts_path = QCoreApplication::applicationDirPath();
 		_qt_translator = new QTranslator;
-		if (_qt_translator->load("qt_" + newlanguage, qt_ts_path))
+		if (loadQtTranslation(_qt_translator, newlanguage))
 			QApplication::installTranslator(_qt_translator);
 		else
 		{

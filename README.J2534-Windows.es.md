@@ -23,6 +23,9 @@ carpeta de FreeSSM ni intentes registrarla manualmente.
 4. Extrae el ZIP completo. No ejecutes `FreeSSM.exe` directamente dentro del ZIP.
 5. Verifica que `FreeSSM.exe`, `j2534_broker.exe`, las DLL Qt y las carpetas
    `platforms`, `printsupport` y `definitions` permanezcan juntas.
+6. FreeSSM usa español automáticamente si coincide con el idioma de Windows. Si
+   inicia en otro idioma, abre **Preferences**, elige **Spanish** en **Language**
+   y confirma con **OK**.
 
 Los artefactos de GitHub Actions son temporales. Si ya caducaron, usa
 **Run workflow** para generar uno nuevo.
@@ -37,6 +40,7 @@ Para compilar FreeSSM localmente, usa una consola Qt 5.15.2 MinGW 8.1 x64:
 
 ```powershell
 qmake.exe FreeSSM.pro "CONFIG+=release"
+mingw32-make.exe translation
 mingw32-make.exe -j2 release
 ```
 

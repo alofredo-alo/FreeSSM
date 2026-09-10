@@ -1593,6 +1593,11 @@ Başka bir uygulama tarafından kullanılıyor olabilir...</translation>
         <source>Turkish</source>
         <translation>Türkçe</translation>
     </message>
+    <message>
+        <location filename="src/Languages.h" line="40"/>
+        <source>Spanish</source>
+        <translation>İspanyolca</translation>
+    </message>
 </context>
 <context>
     <name>MBSWcontent_Form</name>

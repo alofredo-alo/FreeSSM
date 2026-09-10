@@ -1594,6 +1594,11 @@ Eventuell wird es bereits von einer anderen Anwendung verwendet...</translation>
         <source>Turkish</source>
         <translation>Türkisch</translation>
     </message>
+    <message>
+        <location filename="src/Languages.h" line="40"/>
+        <source>Spanish</source>
+        <translation>Spanisch</translation>
+    </message>
 </context>
 <context>
     <name>MBSWcontent_Form</name>

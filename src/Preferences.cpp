@@ -52,7 +52,7 @@ Preferences::Preferences(QMainWindow *parent, AbstractDiagInterface::interface_t
 		QString langname_tr = QCoreApplication::translate( "Language", langname.toUtf8() );
 		language_comboBox->addItem( langname_tr );
 	}
-	_lastlangindex = __supportedLocales.indexOf( QLocale(_language_current) );
+	_lastlangindex = supportedLocaleIndex(QLocale(_language_current));
 	language_comboBox->setCurrentIndex(_lastlangindex);
 	/* NOTE: no need to implement fallback, selected language is always valid (has been checked/corrected at program start)
 	         Apart from that, language switching wouldn't work at this point   */
@@ -546,7 +546,7 @@ void Preferences::closeEvent(QCloseEvent *event)
 	{
 		// Switch back to old translation:
 		QLocale loc( _language_old );
-		switchLanguage( __supportedLocales.indexOf(loc) );
+		switchLanguage(supportedLocaleIndex(loc));
 		// Switch back to old GUI-style:
 		switchGUIstyle( _style_old );
 	}

@@ -1,6 +1,6 @@
 # FreeSSM con J2534 para Windows x64
 
-[![Windows J2534 package](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml/badge.svg?branch=integration%2Fnext)](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml)
+[![Windows J2534 package](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml/badge.svg?branch=master)](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml)
 
 Fork de FreeSSM orientado a diagnóstico Subaru mediante interfaces SAE J2534,
 incluido Tactrix OpenPort 2.0. La aplicación es de 64 bits y utiliza un broker de
@@ -23,6 +23,8 @@ incluido Tactrix OpenPort 2.0. La aplicación es de 64 bits y utiliza un broker 
    del ZIP.
 4. Mantén `FreeSSM.exe` y `j2534_broker.exe` en la misma carpeta. No se requiere
    instalar FreeSSM ni ejecutarlo como administrador.
+5. Si Windows no está configurado en español, abre **Preferences**, selecciona
+   **Spanish** en **Language** y confirma con **OK**. El cambio es inmediato.
 
 Los artefactos de Actions caducan. Si no aparece uno disponible, ejecuta el
 workflow manualmente con **Run workflow** y descarga el resultado cuando termine.
@@ -81,6 +83,7 @@ antiguo y no es válido para ese vehículo.
 - Detección separada de drivers J2534 registrados en las vistas x86 y x64.
 - Diagnóstico detallado de carga de DLL, apertura, versión y cierre.
 - Modo global `--read-only` para la captura inicial.
+- Interfaz seleccionable en español, inglés, alemán y turco.
 - Paquete portable reproducible con Qt 5.15.2, runtimes MinGW, plugins y hashes.
 
 ## Documentación

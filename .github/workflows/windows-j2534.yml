@@ -3,7 +3,7 @@ name: Windows J2534 package
 on:
   workflow_dispatch:
   push:
-    branches: [master, integration/next]
+    branches: [master]
   pull_request:
     branches: [master]
 
@@ -38,6 +38,15 @@ jobs:
         run: |
           qmake.exe FreeSSM.pro "CONFIG+=release"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          lupdate.exe FreeSSM.pro -no-obsolete
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $unfinished = Select-String -Path FreeSSM_es.ts -Pattern 'type="unfinished"'
+          if ($unfinished) {
+            $unfinished | ForEach-Object { Write-Error $_.Line }
+            throw "FreeSSM_es.ts contains untranslated application strings."
+          }
+          mingw32-make.exe translation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mingw32-make.exe -j2 release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -63,6 +72,24 @@ jobs:
           $qtRoot = "C:\Qt\5.15.2\mingw81_64"
           $qtBinPath = Join-Path $qtRoot "bin"
           $qtPluginPath = Join-Path $qtRoot "plugins"
+          $appTranslations = @(
+            "FreeSSM_en.qm",
+            "FreeSSM_de.qm",
+            "FreeSSM_tr.qm",
+            "FreeSSM_es.qm"
+          )
+          foreach ($translation in $appTranslations) {
+            if (-not (Test-Path $translation)) {
+              throw "Required application translation is missing: $translation"
+            }
+            Copy-Item $translation $dist
+          }
+          foreach ($language in @("de", "tr", "es")) {
+            $qtTranslation = Join-Path $qtRoot "translations\qt_$language.qm"
+            if (Test-Path $qtTranslation) {
+              Copy-Item $qtTranslation $dist
+            }
+          }
           $runtimeFiles = @(
             @{ Path = "Qt5Core.dll"; Required = $true },
             @{ Path = "Qt5Gui.dll"; Required = $true },

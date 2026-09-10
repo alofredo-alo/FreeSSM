@@ -165,11 +165,13 @@ RESOURCES += resources/FreeSSM.qrc
 
 TRANSLATIONS = FreeSSM_en.ts \
                FreeSSM_de.ts \
-               FreeSSM_tr.ts
+               FreeSSM_tr.ts \
+               FreeSSM_es.ts
 
 TRANSLATIONS_BIN = FreeSSM_en.qm \
                    FreeSSM_de.qm \
-                   FreeSSM_tr.qm
+                   FreeSSM_tr.qm \
+                   FreeSSM_es.qm
                    # NOTE: we can't use wildcards (see below)
 
 QMAKE_EXTRA_TARGETS += translation

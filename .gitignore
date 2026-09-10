@@ -1,4 +1,5 @@
 FreeSSM*
+!FreeSSM_*.ts
 Makefile*
 object_script.FreeSSM*
 ui_*.h
