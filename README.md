@@ -88,6 +88,7 @@ antiguo y no es válido para ese vehículo.
 
 ## Documentación
 
+- [Bitácora técnica completa del trabajo realizado](RESUMEN-TRABAJO-CHAT.md)
 - [Guía completa J2534 para Windows en español](README.J2534-Windows.es.md)
 - [J2534 Windows guide in English](README.J2534-Windows.md)
 - [README original de FreeSSM](README.txt)
