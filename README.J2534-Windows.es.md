@@ -113,6 +113,11 @@ marca significa que se seleccionó una definición exacta; si no aparece, FreeSS
 está usando la definición genérica anterior y debes guardar el ROM ID antes de
 continuar.
 
+Para la ROM B1AB217100 del Outback probado, la marca esperada es
+**5EAT DTC probe (unverified) ROM B1AB217100**. Es un sondeo de campo, no una
+declaración de compatibilidad completa. Reemplaza sólo el mapa DTC y conserva los
+27 datos y 24 switches genéricos que ya funcionan.
+
 En datos en vivo prueba inicialmente:
 
 - Battery Voltage;
@@ -124,6 +129,22 @@ En datos en vivo prueba inicialmente:
 La vista de DTC utiliza los 12 pares de bytes actuales/confirmados declarados por
 el logger para ese ROM ID. No se leen las dos direcciones RAM experimentales de
 lock-up, no se importan switches y no se habilita ninguna escritura.
+
+Para capturar el sondeo B1AB217100:
+
+1. Abre FreeSSM exclusivamente con “.\FreeSSM.exe --read-only”.
+2. Confirma la marca **5EAT DTC probe (unverified)** en Información.
+3. Captura primero ambas tablas de DTC, incluso si indican “sin códigos”.
+4. En Datos actuales agrega los 24 parámetros cuyo nombre comienza con
+   “5EAT DTC probe”. Los valores son bytes crudos decimales entre 0 y 255 y el
+   nombre incluye la dirección hexadecimal consultada.
+5. Guarda una captura donde se vean nombre, mínimo, valor actual y máximo. No
+   borres memoria ni desconectes módulos antes de conservar esos valores.
+
+Un byte distinto de cero se decodifica también en la tabla DTC. Si el bit no
+tiene descripción confirmada, FreeSSM mostrará “???” junto con dirección y bit;
+esa salida es útil y no debe interpretarse aún como un código validado para esta
+calibración.
 
 ## Alcance por vehículo
 

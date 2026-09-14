@@ -945,3 +945,31 @@ En el vehículo, la confirmación visible es la cadena **5EAT logger ROM** en
 **Transmission → Information**. Si aparece, se debe probar primero DTC y un grupo
 pequeño de datos en vivo bajo modo read-only. Si no aparece, se debe conservar el
 ROM ID exacto para evaluar cobertura sin probar direcciones supuestas.
+
+## 19. Sondeo DTC de campo para la ROM B1AB217100
+
+Las capturas del Outback 2010 confirmaron comunicación estable con la TCU
+E-5AT, ROM B1AB217100: voltaje, temperatura ATF, marcha, velocidades,
+presiones y corrientes entregan valores coherentes. La ausencia de
+**5EAT logger ROM** confirmó que esa ROM no está entre los 26 IDs exactos. A la
+vez, el switch **Diagnosis Lamp** llegó a estado On mientras
+**ATF Temperature Lamp** permaneció Off, por lo que el falso “sin códigos”
+debía investigarse en el mapa DTC y no en el transporte J2534.
+
+Se agregó un sondeo limitado exactamente a B1AB217100. No se la aliasa a
+B1AE207100 ni se declara soporte definitivo. El sondeo:
+
+- reemplaza únicamente los bloques DTC genéricos por los 12 pares de direcciones
+  actuales/confirmadas comunes a los 26 ROM del logger;
+- conserva los 27 datos y 24 switches genéricos que ya funcionan;
+- agrega 24 datos actuales “5EAT DTC probe ... raw”, uno por dirección, para
+  mostrar cada byte crudo entre 0 y 255 incluso cuando vale cero;
+- decodifica los bits conocidos mediante la tabla OBD existente y muestra
+  “???” con dirección/bit para definiciones ausentes;
+- sólo usa lecturas Select Monitor bajo 0x200, sin RAM directa ni operaciones
+  nuevas de escritura.
+
+La marca visible esperada es
+**5EAT DTC probe (unverified) ROM B1AB217100**. La sesión de campo debe iniciarse
+con “FreeSSM.exe --read-only”; se deben guardar ambas tablas DTC y los 24 bytes
+crudos antes de interpretar o intervenir cableado/módulos.

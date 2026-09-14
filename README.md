@@ -76,6 +76,12 @@ Turbine Revolution Speed y corrientes/presiones de solenoides. Después repite e
 **Engine**. No borres códigos y no uses el diálogo ABS/VDC actual: corresponde
 al protocolo SSM1 antiguo y no es válido para ese vehículo.
 
+La ROM de campo B1AB217100 usa un sondeo específico y aparecerá como
+**5EAT DTC probe (unverified)**. Conserva los datos genéricos y añade 24
+parámetros “5EAT DTC probe ... raw” para registrar, en decimal, cada byte actual
+y confirmado. El sondeo sólo consulta direcciones Select Monitor menores que
+0x200; ejecútalo siempre con --read-only y conserva capturas de los 24 valores.
+
 ## Cobertura inicial
 
 | Vehículo | Transporte inicial | Cobertura actual |
@@ -92,6 +98,8 @@ al protocolo SSM1 antiguo y no es válido para ese vehículo.
 - Modo global `--read-only` para la captura inicial.
 - Logger 5EAT con 26 ROM IDs, parámetros específicos y 12 pares de bloques DTC.
 - Selección exacta por los cinco bytes de ROM ID, sin inferir direcciones.
+- Sondeo de campo read-only, limitado exactamente a la ROM B1AB217100, con 24
+  bytes DTC crudos visibles y decodificación provisional.
 - Interfaz seleccionable en español, inglés, alemán y turco.
 - Paquete portable reproducible con Qt 5.15.2, runtimes MinGW, plugins y hashes.
 

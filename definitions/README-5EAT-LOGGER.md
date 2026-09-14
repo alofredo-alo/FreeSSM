@@ -36,7 +36,11 @@ direcciones 0x804EB2 y 0x804EB6. No se importan ajustes, actuadores, borrado de
 memoria ni ninguna escritura.
 
 Si el ID no coincide, el XML falta o falla la validación, FreeSSM conserva las
-definiciones internas anteriores y no intenta aproximar direcciones.
+definiciones internas anteriores y no intenta aproximar direcciones. La única
+excepción es el sondeo de campo explícito para B1AB217100: usa los 12 pares que
+son idénticos en los 26 ROM IDs del XML, los marca como no verificados y expone
+sus 24 bytes crudos como datos actuales. No convierte esa ROM en una coincidencia
+del logger ni habilita RAM directa o escrituras.
 
 ## Actualización
 

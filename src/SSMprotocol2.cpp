@@ -149,7 +149,12 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ign
 		const std::string unitIdentifier = libFSSM::StrToHexstr(_ssmCUdata.ROM_ID);
 		FiveEATLoggerDefinitions loggerDefinitions;
 		std::string loggerError;
-		if (loggerDefinitions.load(loggerFilename.toStdString(), unitIdentifier, &loggerError))
+		bool loggerDefinitionLoaded =
+			loggerDefinitions.load(loggerFilename.toStdString(), unitIdentifier, &loggerError);
+		if (!loggerDefinitionLoaded)
+			loggerDefinitionLoaded =
+				loggerDefinitions.loadDiagnosticProbe(unitIdentifier, &loggerError);
+		if (loggerDefinitionLoaded)
 		{
 			std::vector<mb_intl_dt> loggerMeasuringBlocks;
 			const std::vector<FiveEATLoggerDefinitions::Parameter>& parameters =
@@ -201,11 +206,22 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ign
 
 			if (FBdefsIface->setTransmissionOBDDiagnosticCodeBlocks(loggerDiagnosticBlocks))
 			{
-				_supportedMBs.swap(loggerMeasuringBlocks);
+				if (loggerDefinitions.isDiagnosticProbe())
+				{
+					_supportedMBs.insert(_supportedMBs.end(), loggerMeasuringBlocks.begin(),
+					                     loggerMeasuringBlocks.end());
+				}
+				else
+					_supportedMBs.swap(loggerMeasuringBlocks);
 				FBdefsIface->getDCblockData(&_DTCblockData);
 				if (!_sysDescription.empty())
 					_sysDescription += " | ";
-				_sysDescription += "5EAT logger ROM " + loggerDefinitions.unitIdentifier();
+				if (loggerDefinitions.isDiagnosticProbe())
+					_sysDescription += "5EAT DTC probe (unverified) ROM " +
+					                   loggerDefinitions.unitIdentifier();
+				else
+					_sysDescription += "5EAT logger ROM " +
+					                   loggerDefinitions.unitIdentifier();
 			}
 		}
 	}

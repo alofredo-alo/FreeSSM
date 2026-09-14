@@ -17,6 +17,7 @@
 #include <cerrno>
 #include <cctype>
 #include <cstdlib>
+#include <iomanip>
 #include <limits>
 #include <map>
 #include <set>
@@ -184,6 +185,7 @@ bool FiveEATLoggerDefinitions::load(const std::string& filename,
 	_parameters.clear();
 	_diagnosticBlocks.clear();
 	_definitionVersion.clear();
+	_diagnosticProbe = false;
 	_unitIdentifier = normalizeUnitIdentifier(unitIdentifier);
 	if (_unitIdentifier.empty())
 	{
@@ -322,6 +324,81 @@ bool FiveEATLoggerDefinitions::load(const std::string& filename,
 	}
 
 	_parameters.swap(parameters);
+	setError(errorMessage, "");
+	return true;
+}
+
+
+bool FiveEATLoggerDefinitions::loadDiagnosticProbe(const std::string& unitIdentifier,
+	                                                std::string *errorMessage)
+{
+	_parameters.clear();
+	_diagnosticBlocks.clear();
+	_definitionVersion.clear();
+	_diagnosticProbe = false;
+	_unitIdentifier = normalizeUnitIdentifier(unitIdentifier);
+	if (_unitIdentifier.empty())
+	{
+		setError(errorMessage, "invalid 5EAT unit identifier");
+		return false;
+	}
+
+	/* This is deliberately an exact, single-ROM field probe. These twelve
+	 * current/confirmed pairs are present in every one of the 26 reversed ROMs
+	 * in the pinned 5EAT logger definition. They remain unverified for this ROM,
+	 * so the probe also exposes each byte as a raw measuring block. */
+	if (_unitIdentifier != "B1AB217100")
+	{
+		setError(errorMessage, "no 5EAT DTC probe defined for unit identifier: " +
+		         _unitIdentifier);
+		return false;
+	}
+
+	static const unsigned int currentAddresses[] = {
+		0x09C, 0x09D, 0x09E, 0x0A6, 0x0F0, 0x0F1,
+		0x0F2, 0x0F3, 0x123, 0x124, 0x125, 0x162
+	};
+	static const unsigned int confirmedAddresses[] = {
+		0x0BC, 0x0BD, 0x0BE, 0x0C6, 0x0F4, 0x0F5,
+		0x0F6, 0x0F7, 0x12B, 0x12C, 0x12D, 0x167
+	};
+	const std::size_t blockCount = sizeof(currentAddresses) / sizeof(currentAddresses[0]);
+
+	for (std::size_t index = 0; index < blockCount; ++index)
+	{
+		DiagnosticBlock block;
+		block.group = static_cast<unsigned int>(index);
+		block.currentAddress = currentAddresses[index];
+		block.confirmedAddress = confirmedAddresses[index];
+		_diagnosticBlocks.push_back(block);
+
+		const char *states[] = {"current", "confirmed"};
+		const unsigned int addresses[] = {block.currentAddress, block.confirmedAddress};
+		for (std::size_t state = 0; state < 2; ++state)
+		{
+			std::ostringstream groupText;
+			groupText << std::setfill('0') << std::setw(2) << index;
+			std::ostringstream addressText;
+			addressText << "0x" << std::uppercase << std::hex << std::setfill('0')
+			            << std::setw(3) << addresses[state];
+
+			Parameter parameter;
+			parameter.id = "DTC_PROBE_G" + groupText.str() + "_" + states[state];
+			parameter.name = "5EAT DTC probe G" + groupText.str() + " " +
+			                 states[state] + " raw [" + addressText.str() + "]";
+			parameter.description =
+				"Unverified read-only DTC byte; preserve the raw value before interpretation";
+			parameter.unit = "raw byte (dec)";
+			parameter.formula = "*1";
+			parameter.address = addresses[state];
+			parameter.length = 1;
+			parameter.precision = 0;
+			_parameters.push_back(parameter);
+		}
+	}
+
+	_definitionVersion = "5eat-dtc-field-probe-v1";
+	_diagnosticProbe = true;
 	setError(errorMessage, "");
 	return true;
 }

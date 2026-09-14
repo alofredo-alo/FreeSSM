@@ -8,6 +8,16 @@
 namespace
 {
 
+const unsigned int expectedCurrentDTCAddresses[] = {
+	0x09C, 0x09D, 0x09E, 0x0A6, 0x0F0, 0x0F1,
+	0x0F2, 0x0F3, 0x123, 0x124, 0x125, 0x162
+};
+const unsigned int expectedConfirmedDTCAddresses[] = {
+	0x0BC, 0x0BD, 0x0BE, 0x0C6, 0x0F4, 0x0F5,
+	0x0F6, 0x0F7, 0x12B, 0x12C, 0x12D, 0x167
+};
+
+
 void require(bool condition, const std::string& message)
 {
 	if (!condition)
@@ -38,6 +48,7 @@ void checkKnownUnit(const std::string& filename, const std::string& unitIdentifi
 	require(definitions.load(filename, unitIdentifier, &error), error);
 	require(definitions.unitIdentifier() == unitIdentifier, "normalized unit identifier mismatch");
 	require(definitions.definitionVersion() == "5eat-tcu", "definition version mismatch");
+	require(!definitions.isDiagnosticProbe(), "exact logger definition marked as probe");
 	require(definitions.parameters().size() >= 40, "too few parameters selected");
 	require(definitions.diagnosticBlocks().size() == 12, "expected twelve complete DTC groups");
 
@@ -52,12 +63,15 @@ void checkKnownUnit(const std::string& filename, const std::string& unitIdentifi
 	require(atfTemperature->address == 0x56, "ATF Temperature address mismatch");
 	require(atfTemperature->formula == "-50", "ATF Temperature formula mismatch");
 
-	const FiveEATLoggerDefinitions::DiagnosticBlock& first = definitions.diagnosticBlocks().front();
-	const FiveEATLoggerDefinitions::DiagnosticBlock& last = definitions.diagnosticBlocks().back();
-	require((first.group == 0) && (first.currentAddress == 0x09C) &&
-	        (first.confirmedAddress == 0x0BC), "DTC group 0 mismatch");
-	require((last.group == 11) && (last.currentAddress == 0x162) &&
-	        (last.confirmedAddress == 0x167), "DTC group 11 mismatch");
+	for (std::size_t index = 0; index < definitions.diagnosticBlocks().size(); ++index)
+	{
+		const FiveEATLoggerDefinitions::DiagnosticBlock& block =
+			definitions.diagnosticBlocks().at(index);
+		require((block.group == index) &&
+		        (block.currentAddress == expectedCurrentDTCAddresses[index]) &&
+		        (block.confirmedAddress == expectedConfirmedDTCAddresses[index]),
+		        "DTC group address mismatch");
+	}
 
 	for (std::size_t i = 0; i < definitions.parameters().size(); ++i)
 		require(definitions.parameters().at(i).address < 0x200,
@@ -100,6 +114,39 @@ int main(int argc, char *argv[])
 	        "unknown unit identifier must not match");
 	require(unknown.parameters().empty(), "unknown unit must expose no parameters");
 	require(error.find("not found") != std::string::npos, "unknown unit error is not actionable");
+	require(!unknown.isDiagnosticProbe(), "unknown unit marked as probe");
+
+	FiveEATLoggerDefinitions probe;
+	require(probe.loadDiagnosticProbe("b1 ab-21:71 00", &error), error);
+	require(probe.isDiagnosticProbe(), "field probe not marked as unverified probe");
+	require(probe.unitIdentifier() == "B1AB217100", "probe unit identifier mismatch");
+	require(probe.definitionVersion() == "5eat-dtc-field-probe-v1",
+	        "probe definition version mismatch");
+	require(probe.parameters().size() == 24, "probe must expose all 24 raw DTC bytes");
+	require(probe.diagnosticBlocks().size() == 12, "probe must expose twelve DTC pairs");
+	require(probe.parameters().front().address == 0x09C, "first probe address mismatch");
+	require(probe.parameters().back().address == 0x167, "last probe address mismatch");
+	for (std::size_t index = 0; index < probe.diagnosticBlocks().size(); ++index)
+	{
+		const FiveEATLoggerDefinitions::DiagnosticBlock& block =
+			probe.diagnosticBlocks().at(index);
+		require((block.group == index) &&
+		        (block.currentAddress == expectedCurrentDTCAddresses[index]) &&
+		        (block.confirmedAddress == expectedConfirmedDTCAddresses[index]),
+		        "probe DTC group address mismatch");
+	}
+	for (std::size_t index = 0; index < probe.parameters().size(); ++index)
+	{
+		const FiveEATLoggerDefinitions::Parameter& parameter = probe.parameters().at(index);
+		require(parameter.address < 0x200, "probe contains a direct RAM address");
+		require(parameter.length == 1, "probe values must be single bytes");
+		require(parameter.formula == "*1", "probe must preserve raw byte values");
+	}
+	require(!probe.loadDiagnosticProbe("B1AE207100", &error),
+	        "probe must not activate for a different ROM");
+	require(probe.parameters().empty(), "failed probe selection exposed stale parameters");
+	require(probe.diagnosticBlocks().empty(), "failed probe selection exposed stale DTC blocks");
+	require(!probe.isDiagnosticProbe(), "failed probe selection remained active");
 
 	FiveEATLoggerDefinitions invalid;
 	require(invalid.load(filename, "ACD1A06000", &error), error);

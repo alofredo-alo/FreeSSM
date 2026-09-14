@@ -44,11 +44,14 @@ public:
 
 	bool load(const std::string& filename, const std::string& unitIdentifier,
 	          std::string *errorMessage = NULL);
+	bool loadDiagnosticProbe(const std::string& unitIdentifier,
+	                         std::string *errorMessage = NULL);
 
 	const std::vector<Parameter>& parameters() const { return _parameters; }
 	const std::vector<DiagnosticBlock>& diagnosticBlocks() const { return _diagnosticBlocks; }
 	const std::string& unitIdentifier() const { return _unitIdentifier; }
 	const std::string& definitionVersion() const { return _definitionVersion; }
+	bool isDiagnosticProbe() const { return _diagnosticProbe; }
 
 	static std::string normalizeUnitIdentifier(const std::string& value);
 
@@ -57,6 +60,7 @@ private:
 	std::vector<DiagnosticBlock> _diagnosticBlocks;
 	std::string _unitIdentifier;
 	std::string _definitionVersion;
+	bool _diagnosticProbe = false;
 };
 
 

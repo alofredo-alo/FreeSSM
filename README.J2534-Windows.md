@@ -82,6 +82,14 @@ The marker means that FreeSSM selected an exact five-byte ROM ID from the bundle
 current/confirmed DTC byte pairs. Experimental direct-RAM lock-up parameters and
 switches are excluded, and this integration adds no write operation.
 
+ROM B1AB217100 is handled separately and must display
+**5EAT DTC probe (unverified) ROM B1AB217100**. In a --read-only session,
+capture both DTC tables, then add all 24 live-data parameters whose names start
+with “5EAT DTC probe”. They expose the current/confirmed bytes as decimal values
+and include each hexadecimal address in the name. A nonzero undefined bit is
+shown as “???” with its address and bit; do not treat it as a validated code
+until the field capture is reviewed.
+
 ## Vehicle scope for the first test
 
 | Vehicle | First transport | Current target |
