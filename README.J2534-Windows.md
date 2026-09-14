@@ -70,9 +70,17 @@ reg.exe query "HKLM\SOFTWARE\PassThruSupport.04.04" /s /reg:64
    Confirm that `[READ-ONLY]` appears in the window title. In this mode FreeSSM
    blocks protocol writes and disables Adjustments, System tests, Clear memory and
    Clear memory 2. It also avoids the normal connect-time actuator-stop routine.
-5. On the 2010 Outback 3.6R, open Transmission first and save the complete TCU
-   identification and all current/history DTCs. Then repeat for Engine. Do not use
-   a normal writable session during baseline capture.
+5. On the 2010 Outback 3.6R, open Transmission first. Under Information, verify
+   that the description includes **5EAT logger ROM** followed by the displayed
+   TCU ROM ID. Save the identification, all current/memorized DTCs and initial
+   live data. Prioritize battery voltage, both available ATF temperatures, gear
+   position, turbine speed and solenoid currents/pressures. Then repeat for
+   Engine. Do not use a writable session during baseline capture.
+
+The marker means that FreeSSM selected an exact five-byte ROM ID from the bundled
+5EAT logger. The matching definition supplies the live parameters and 12
+current/confirmed DTC byte pairs. Experimental direct-RAM lock-up parameters and
+switches are excluded, and this integration adds no write operation.
 
 ## Vehicle scope for the first test
 

@@ -107,6 +107,24 @@ Abre primero **Transmission** y guarda la identificación completa de la TCU,
 todos los DTC actuales e históricos y su estado. Repite después con **Engine**.
 No uses una sesión normal con escritura habilitada durante esta captura.
 
+En **Transmission → Información**, confirma que la descripción incluya
+**5EAT logger ROM** y que el ID mostrado sea el mismo ROM ID de la pantalla. Esa
+marca significa que se seleccionó una definición exacta; si no aparece, FreeSSM
+está usando la definición genérica anterior y debes guardar el ROM ID antes de
+continuar.
+
+En datos en vivo prueba inicialmente:
+
+- Battery Voltage;
+- ATF Temperature y ATF Temperature 2, si esta última está soportada;
+- Gear Position y Turbine Revolution Speed;
+- Front Wheel Speed y Rear Wheel Speed;
+- corrientes y presiones de solenoides.
+
+La vista de DTC utiliza los 12 pares de bytes actuales/confirmados declarados por
+el logger para ese ROM ID. No se leen las dos direcciones RAM experimentales de
+lock-up, no se importan switches y no se habilita ninguna escritura.
+
 ## Alcance por vehículo
 
 | Vehículo | Primer transporte | Objetivo actual |

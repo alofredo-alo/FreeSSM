@@ -904,3 +904,44 @@ de diagnóstico con cada vehículo todavía se requiere:
 
 Hasta completar esos puntos, el fork debe considerarse una versión de integración
 para pruebas controladas y no una herramienta terminada para todos los módulos.
+
+## 18. Integración del logger TCU 5EAT
+
+Se incorporó la definición read-only de
+TomFLV/5eat-tcu-reverse-engineering, fijada al commit
+44b5e8b8fc407883b0cce0123509f93eaf06a59b. El XML incluido conserva exactamente
+el SHA-256 511e47967ca0461a84b4e9ce072906fb6577a76af4f2508f93babfffb224e447
+y su licencia MIT se distribuye junto al archivo.
+
+La activación ocurre sólo en SSM2 Transmission y exige coincidencia exacta entre
+los cinco bytes del ROM ID leído desde la TCU y uno de los 26 IDs del logger. No
+se usa coincidencia parcial, modelo/año supuesto ni fallback aproximado. Si el
+archivo falta, es inválido o el ID no está declarado, FreeSSM mantiene sus
+definiciones genéricas previas.
+
+El importador agrega, según soporte de cada ROM:
+
+- parámetros de transmisión de uno o dos bytes;
+- temperatura ATF, voltaje, marcha y velocidades;
+- corrientes y presiones de solenoides;
+- 12 pares explícitos de bytes DTC actuales y confirmados;
+- fórmulas de escala compatibles con el evaluador existente de FreeSSM.
+
+Quedaron fuera en esta etapa los switches y las lecturas directas de RAM
+0x804EB2/0x804EB6. No se agregaron ajustes, actuadores, borrado de memoria ni
+escrituras de protocolo. ECM y ABS/VDC no fueron modificados por esta integración.
+
+También se corrigió la inicialización del formato de los bloques DTC. Antes el
+campo podía quedar indeterminado al decidir si mostrar grupos actuales/históricos
+o temporales/memorizados. Para las definiciones exactas 5EAT se fuerza el formato
+OBD usado por la tabla de códigos P existente.
+
+Se agregó una prueba standalone C++ que carga los 26 ROM IDs, exige 12 bloques
+DTC completos, valida direcciones representativas, fórmulas y el filtro que
+impide exponer memoria directa. GitHub Actions verifica además el hash del XML
+antes de compilar y añade ese hash al BUILD-INFO del artefacto.
+
+En el vehículo, la confirmación visible es la cadena **5EAT logger ROM** en
+**Transmission → Information**. Si aparece, se debe probar primero DTC y un grupo
+pequeño de datos en vivo bajo modo read-only. Si no aparece, se debe conservar el
+ROM ID exacto para evaluar cobertura sin probar direcciones supuestas.

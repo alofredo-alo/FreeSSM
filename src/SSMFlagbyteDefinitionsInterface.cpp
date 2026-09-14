@@ -25,6 +25,7 @@ SSMFlagbyteDefinitionsInterface::SSMFlagbyteDefinitionsInterface(QString languag
 {
 	_dc_defs = NULL;
 	_cccc_defs = NULL;
+	_dc_defs_format = dc_addr_dt::Format::simple;
 	_memCCs_supported = false;
 }
 
@@ -83,6 +84,7 @@ bool SSMFlagbyteDefinitionsInterface::getDCblockData(std::vector<dc_block_dt> *b
 		dc_addr_dt new_addr;
 
 		new_addr.scaling = dc_addr_dt::Scaling::bitwise;
+		new_addr.format = _dc_defs_format;
 
 		new_addr.address = _dc_defs->at(i).byteAddr_currentOrTempOrLatest;
 		new_addr.type = dc_addr_dt::Type::currentOrTempOrLatest;
@@ -101,6 +103,7 @@ bool SSMFlagbyteDefinitionsInterface::getDCblockData(std::vector<dc_block_dt> *b
 		dc_addr_dt new_addr;
 
 		new_addr.scaling = dc_addr_dt::Scaling::bitwise;
+		new_addr.format = dc_addr_dt::Format::simple;
 
 		new_addr.address = _cccc_defs->at(i).byteAddr_currentOrTempOrLatest;
 		new_addr.type = dc_addr_dt::Type::currentOrTempOrLatest;
@@ -116,6 +119,73 @@ bool SSMFlagbyteDefinitionsInterface::getDCblockData(std::vector<dc_block_dt> *b
 		block_data->push_back(new_block);
 	}
 
+	return true;
+}
+
+
+bool SSMFlagbyteDefinitionsInterface::setTransmissionOBDDiagnosticCodeBlocks(
+	const std::vector<dc_block_dt>& block_data)
+{
+	if (!_id_set || (_CU != CUtype::Transmission) || block_data.empty())
+		return false;
+
+	QStringList rawDefs;
+	if (_language == "de")
+	{
+		SSMFlagbyteDefinitions_de rawdefs_de;
+		rawDefs = rawdefs_de.OBDDTCrawDefs();
+	}
+	else if (_language == "tr")
+	{
+		SSMFlagbyteDefinitions_tr rawdefs_tr;
+		rawDefs = rawdefs_tr.OBDDTCrawDefs();
+	}
+	else
+	{
+		SSMFlagbyteDefinitions_en rawdefs_en;
+		rawDefs = rawdefs_en.OBDDTCrawDefs();
+	}
+
+	std::vector<dc_defs_dt> definitions;
+	for (std::size_t blockIndex = 0; blockIndex < block_data.size(); ++blockIndex)
+	{
+		unsigned int currentAddress = MEMORY_ADDRESS_NONE;
+		unsigned int confirmedAddress = MEMORY_ADDRESS_NONE;
+		const dc_block_dt& block = block_data.at(blockIndex);
+		if (block.addresses.size() != 2)
+			return false;
+		for (std::size_t addressIndex = 0; addressIndex < block.addresses.size(); ++addressIndex)
+		{
+			const dc_addr_dt& address = block.addresses.at(addressIndex);
+			if ((address.scaling != dc_addr_dt::Scaling::bitwise) ||
+			    (address.format != dc_addr_dt::Format::OBD) ||
+			    (address.address >= 0x200))
+				return false;
+			if (address.type == dc_addr_dt::Type::currentOrTempOrLatest)
+			{
+				if (currentAddress != MEMORY_ADDRESS_NONE)
+					return false;
+				currentAddress = address.address;
+			}
+			else if (address.type == dc_addr_dt::Type::historicOrMemorized)
+			{
+				if (confirmedAddress != MEMORY_ADDRESS_NONE)
+					return false;
+				confirmedAddress = address.address;
+			}
+			else
+				return false;
+		}
+		if ((currentAddress == MEMORY_ADDRESS_NONE) ||
+		    (confirmedAddress == MEMORY_ADDRESS_NONE))
+			return false;
+		addDCdefs(currentAddress, confirmedAddress, rawDefs, &definitions);
+	}
+
+	if (definitions.size() != block_data.size())
+		return false;
+	*_dc_defs = definitions;
+	_dc_defs_format = dc_addr_dt::Format::OBD;
 	return true;
 }
 
@@ -715,6 +785,7 @@ void SSMFlagbyteDefinitionsInterface::setupDiagnosticCodes()
 	else
 		_dc_defs->clear();
 	fmt_OBD2 = !_ssmCUdata.flagbytebit(29, 7);
+	_dc_defs_format = fmt_OBD2 ? dc_addr_dt::Format::OBD : dc_addr_dt::Format::simple;
 	if (_language == "de")
 	{
 		SSMFlagbyteDefinitions_de rawdefs_de;
@@ -917,4 +988,3 @@ bool SSMFlagbyteDefinitionsInterface::hasMBengineSpeed(bool *EngSpeedMBsup)
 	*EngSpeedMBsup = _ssmCUdata.flagbytebit(0, 0);
 	return true;
 }
-

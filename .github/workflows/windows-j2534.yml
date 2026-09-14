@@ -33,6 +33,19 @@ jobs:
           "C:\Qt\5.15.2\mingw81_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "C:\Qt\Tools\mingw810_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Verify 5EAT logger definition
+        shell: pwsh
+        run: |
+          $expectedHash = "511e47967ca0461a84b4e9ce072906fb6577a76af4f2508f93babfffb224e447"
+          $actualHash = (Get-FileHash -Algorithm SHA256 .\definitions\5eat_tcu_logger.xml).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "Unexpected 5EAT logger hash: $actualHash"
+          }
+          g++.exe -std=c++11 -O2 -Wall -Wextra -pedantic -I. .\tests\test_fiveeat_logger.cpp .\src\FiveEATLoggerDefinitions.cpp .\src\tinyxml2\tinyxml2.cpp -o .\test_fiveeat_logger.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\test_fiveeat_logger.exe .\definitions\5eat_tcu_logger.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build FreeSSM x64
         shell: pwsh
         run: |
@@ -130,10 +143,12 @@ jobs:
           $commit = git rev-parse HEAD
           $appHash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist "FreeSSM.exe")).Hash
           $brokerHash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist "j2534_broker.exe")).Hash
+          $loggerHash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist "definitions\5eat_tcu_logger.xml")).Hash
           @(
             "commit=$commit"
             "FreeSSM.exe.sha256=$appHash"
             "j2534_broker.exe.sha256=$brokerHash"
+            "5eat_tcu_logger.xml.sha256=$loggerHash"
           ) | Set-Content -Encoding ascii (Join-Path $dist "BUILD-INFO.txt")
 
       - name: Upload Windows ZIP

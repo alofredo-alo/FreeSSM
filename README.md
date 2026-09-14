@@ -10,6 +10,10 @@ incluido Tactrix OpenPort 2.0. La aplicación es de 64 bits y utiliza un broker 
 > son los primeros objetivos. El soporte moderno de ABS/VDC y sensor de ángulo
 > de dirección todavía no está implementado.
 
+La transmisión 5EAT dispone ahora de parámetros y bloques DTC seleccionados por
+coincidencia exacta del ROM ID de la TCU contra el logger incluido. Esta mejora
+es exclusivamente de lectura y no modifica todavía ABS/VDC.
+
 ## Instalación rápida en Windows
 
 1. Instala el paquete oficial
@@ -64,10 +68,13 @@ reg.exe query "HKLM\SOFTWARE\PassThruSupport.04.04" /s /reg:64
 Confirma `[READ-ONLY]` en el título. Este modo bloquea borrado de memoria,
 ajustes, pruebas de actuadores y escrituras de protocolo.
 
-Para el Outback 2010 3.6R, lee primero **Transmission** y guarda identificación,
-DTC actuales/históricos y sus estados. Después repite en **Engine**. No borres
-códigos y no uses el diálogo ABS/VDC actual: corresponde al protocolo SSM1
-antiguo y no es válido para ese vehículo.
+Para el Outback 2010 3.6R, abre primero **Transmission → Information**. Si el ROM
+ID está cubierto, la descripción mostrará **5EAT logger ROM** seguido por el ID.
+Guarda esa pantalla, lee DTC actuales/memorizados y prueba datos en vivo. Prioriza
+Battery Voltage, ATF Temperature, ATF Temperature 2 si aparece, Gear Position,
+Turbine Revolution Speed y corrientes/presiones de solenoides. Después repite en
+**Engine**. No borres códigos y no uses el diálogo ABS/VDC actual: corresponde
+al protocolo SSM1 antiguo y no es válido para ese vehículo.
 
 ## Cobertura inicial
 
@@ -83,6 +90,8 @@ antiguo y no es válido para ese vehículo.
 - Detección separada de drivers J2534 registrados en las vistas x86 y x64.
 - Diagnóstico detallado de carga de DLL, apertura, versión y cierre.
 - Modo global `--read-only` para la captura inicial.
+- Logger 5EAT con 26 ROM IDs, parámetros específicos y 12 pares de bloques DTC.
+- Selección exacta por los cinco bytes de ROM ID, sin inferir direcciones.
 - Interfaz seleccionable en español, inglés, alemán y turco.
 - Paquete portable reproducible con Qt 5.15.2, runtimes MinGW, plugins y hashes.
 

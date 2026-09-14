@@ -19,7 +19,11 @@
 
 #include "SSMprotocol2.h"
 
+#include "FiveEATLoggerDefinitions.h"
 #include "libFSSM.h"
+
+#include <QCoreApplication>
+#include <QDir>
 
 
 SSMprotocol2::SSMprotocol2(AbstractDiagInterface *diagInterface, QString language) : SSMprotocol(diagInterface, language)
@@ -138,6 +142,73 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ign
 	FBdefsIface->hasIntegratedCC(&_has_integratedCC);
 	FBdefsIface->getDCblockData(&_DTCblockData);
 	FBdefsIface->measuringBlocks(&_supportedMBs);
+	if (_CU == CUtype::Transmission)
+	{
+		const QString loggerFilename = QDir(QCoreApplication::applicationDirPath())
+			.filePath("definitions/5eat_tcu_logger.xml");
+		const std::string unitIdentifier = libFSSM::StrToHexstr(_ssmCUdata.ROM_ID);
+		FiveEATLoggerDefinitions loggerDefinitions;
+		std::string loggerError;
+		if (loggerDefinitions.load(loggerFilename.toStdString(), unitIdentifier, &loggerError))
+		{
+			std::vector<mb_intl_dt> loggerMeasuringBlocks;
+			const std::vector<FiveEATLoggerDefinitions::Parameter>& parameters =
+				loggerDefinitions.parameters();
+			for (std::size_t index = 0; index < parameters.size(); ++index)
+			{
+				const FiveEATLoggerDefinitions::Parameter& parameter = parameters.at(index);
+				mb_intl_dt measuringBlock;
+				measuringBlock.title = QString::fromUtf8(parameter.name.c_str());
+				measuringBlock.unit = QString::fromUtf8(parameter.unit.c_str());
+				measuringBlock.formula = QString::fromStdString(parameter.formula);
+				measuringBlock.precision = static_cast<char>(parameter.precision);
+				if (parameter.length == 2)
+				{
+					measuringBlock.addrHigh = parameter.address;
+					measuringBlock.addrLow = parameter.address + 1;
+				}
+				else
+				{
+					measuringBlock.addrHigh = MEMORY_ADDRESS_NONE;
+					measuringBlock.addrLow = parameter.address;
+				}
+				loggerMeasuringBlocks.push_back(measuringBlock);
+			}
+
+			std::vector<dc_block_dt> loggerDiagnosticBlocks;
+			const std::vector<FiveEATLoggerDefinitions::DiagnosticBlock>& diagnosticBlocks =
+				loggerDefinitions.diagnosticBlocks();
+			for (std::size_t index = 0; index < diagnosticBlocks.size(); ++index)
+			{
+				const FiveEATLoggerDefinitions::DiagnosticBlock& loggerBlock =
+					diagnosticBlocks.at(index);
+				dc_block_dt diagnosticBlock;
+				dc_addr_dt currentAddress;
+				currentAddress.type = dc_addr_dt::Type::currentOrTempOrLatest;
+				currentAddress.scaling = dc_addr_dt::Scaling::bitwise;
+				currentAddress.format = dc_addr_dt::Format::OBD;
+				currentAddress.address = loggerBlock.currentAddress;
+				diagnosticBlock.addresses.push_back(currentAddress);
+
+				dc_addr_dt confirmedAddress;
+				confirmedAddress.type = dc_addr_dt::Type::historicOrMemorized;
+				confirmedAddress.scaling = dc_addr_dt::Scaling::bitwise;
+				confirmedAddress.format = dc_addr_dt::Format::OBD;
+				confirmedAddress.address = loggerBlock.confirmedAddress;
+				diagnosticBlock.addresses.push_back(confirmedAddress);
+				loggerDiagnosticBlocks.push_back(diagnosticBlock);
+			}
+
+			if (FBdefsIface->setTransmissionOBDDiagnosticCodeBlocks(loggerDiagnosticBlocks))
+			{
+				_supportedMBs.swap(loggerMeasuringBlocks);
+				FBdefsIface->getDCblockData(&_DTCblockData);
+				if (!_sysDescription.empty())
+					_sysDescription += " | ";
+				_sysDescription += "5EAT logger ROM " + loggerDefinitions.unitIdentifier();
+			}
+		}
+	}
 	FBdefsIface->MBdata_engineRunning(&_mb_enginespeed_data);
 	FBdefsIface->switches(&_supportedSWs);
 	FBdefsIface->SWdata_testModeState(&_sw_testmodestate_data);
@@ -239,4 +310,3 @@ bool SSMprotocol2::validateVIN(char VIN[17])
 	}
 	return true;
 }
-

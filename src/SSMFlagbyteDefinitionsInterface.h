@@ -55,6 +55,7 @@ public:
 	bool hasActuatorTests(bool *ATsup);
 
 	bool getDCblockData(std::vector<dc_block_dt> *block_data);
+	bool setTransmissionOBDDiagnosticCodeBlocks(const std::vector<dc_block_dt>& block_data);
 	bool measuringBlocks(std::vector<mb_intl_dt> *mbs);
 	bool switches(std::vector<sw_intl_dt> *sws);
 	bool adjustments(std::vector<adjustment_intl_dt> *adj);
@@ -80,6 +81,7 @@ private:
 
 	std::vector<dc_defs_dt> *_dc_defs;
 	std::vector<dc_defs_dt> *_cccc_defs;
+	dc_addr_dt::Format _dc_defs_format;
 	bool _memCCs_supported;
 
 	void setupDiagnosticCodes();

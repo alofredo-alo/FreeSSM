@@ -58,6 +58,7 @@ HEADERS += src/FreeSSM.h \
            src/CUcontent_sysTests.h \
            src/DiagInterfaceStatusBar.h \
            src/SSMDefinitionsInterface.h \
+           src/FiveEATLoggerDefinitions.h \
            src/SSMLegacyDefinitionsInterface.h \
            src/SSMFlagbyteDefinitionsInterface.h \
            src/SSMFlagbyteDefinitions_SysDescriptions.h \
@@ -113,6 +114,7 @@ SOURCES += src/main.cpp \
            src/CUcontent_sysTests.cpp \
            src/DiagInterfaceStatusBar.cpp \
            src/SSMDefinitionsInterface.cpp \
+           src/FiveEATLoggerDefinitions.cpp \
            src/SSMLegacyDefinitionsInterface.cpp \
            src/SSMFlagbyteDefinitionsInterface.cpp \
            src/SSMFlagbyteDefinitions_SysDescriptions.cpp \
@@ -204,7 +206,10 @@ unix:filestarget.files += resources/icons/freessm/48x48/FreeSSM.png
 doctarget.path = $$INSTALLDIR/doc
 doctarget.files = doc/*
 defstarget.path = $$INSTALLDIR/definitions
-defstarget.files = definitions/SSM1defs_*.xml
+defstarget.files = definitions/SSM1defs_*.xml \
+                   definitions/5eat_tcu_logger.xml \
+                   definitions/5eat_tcu_logger.LICENSE.txt \
+                   definitions/README-5EAT-LOGGER.md
 translation.commands = $$[QT_INSTALL_BINS]/lrelease FreeSSM.pro
 translation.path = $$INSTALLDIR
 translation.files = $$TRANSLATIONS_BIN  #NOTE: wildcards don't work (if the *.qm files don't exist yet when qmake is run, it creates a non-working installation command using the wildcard name as destination name)
