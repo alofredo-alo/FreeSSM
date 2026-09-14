@@ -11,6 +11,9 @@ Integridad:
     5eat_tcu_logger.xml
     SHA-256 511e47967ca0461a84b4e9ce072906fb6577a76af4f2508f93babfffb224e447
 
+El atributo Git específico del archivo fuerza finales de línea LF también en
+Windows para que el XML distribuido conserve ese hash byte a byte.
+
 La definición está bajo licencia MIT. El texto exacto y su nota de alcance están
 en 5eat_tcu_logger.LICENSE.txt.
 
