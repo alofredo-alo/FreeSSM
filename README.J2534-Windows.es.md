@@ -126,16 +126,27 @@ En datos en vivo prueba inicialmente:
 - Front Wheel Speed y Rear Wheel Speed;
 - corrientes y presiones de solenoides.
 
-La vista de DTC utiliza los 12 pares de bytes actuales/confirmados declarados por
-el logger para ese ROM ID. No se leen las dos direcciones RAM experimentales de
+La vista de DTC del sondeo utiliza 19 pares de bytes actuales/confirmados. Los
+primeros 12 son comunes a los ROM conocidos; la fase 2 añade `0x174–0x17A` y
+`0x17B–0x181`, donde el decodificador FreeSSM define P1764/P1765 (yaw), P1767
+(dirección) y P1723/P0711 (temperatura ATF). Las direcciones siguen sin estar
+validadas para esta ROM. No se leen las dos direcciones RAM experimentales de
 lock-up, no se importan switches y no se habilita ninguna escritura.
+
+Antes de abrir Transmission en el Outback 2010, entra a Preferencias y deja
+desmarcada **Preferir ISO-14230 (K-Line) sobre ISO-15765 (CAN)**. Cierra la
+ventana de Transmission si ya estaba conectada y vuelve a abrirla. La barra
+inferior esperada es `SSM2 / ISO-15765` a `500 Kbaud`. Si termina en `SSM2 /
+ISO-14230` a `4800 baud`, CAN no respondió y FreeSSM aplicó el fallback K-Line,
+o la preferencia todavía está activa. Guarda captura de esa barra; no borres
+memoria ni pruebes actuadores.
 
 Para capturar el sondeo B1AB217100:
 
 1. Abre FreeSSM exclusivamente con “.\FreeSSM.exe --read-only”.
 2. Confirma la marca **5EAT DTC probe (unverified)** en Información.
 3. Captura primero ambas tablas de DTC, incluso si indican “sin códigos”.
-4. En Datos actuales agrega los 24 parámetros cuyo nombre comienza con
+4. En Datos actuales agrega los 38 parámetros cuyo nombre comienza con
    “5EAT DTC probe”. Los valores son bytes crudos decimales entre 0 y 255 y el
    nombre incluye la dirección hexadecimal consultada.
 5. Guarda una captura donde se vean nombre, mínimo, valor actual y máximo. No

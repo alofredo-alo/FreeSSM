@@ -84,11 +84,20 @@ switches are excluded, and this integration adds no write operation.
 
 ROM B1AB217100 is handled separately and must display
 **5EAT DTC probe (unverified) ROM B1AB217100**. In a --read-only session,
-capture both DTC tables, then add all 24 live-data parameters whose names start
+capture both DTC tables, then add all 38 live-data parameters whose names start
 with “5EAT DTC probe”. They expose the current/confirmed bytes as decimal values
 and include each hexadecimal address in the name. A nonzero undefined bit is
 shown as “???” with its address and bit; do not treat it as a validated code
-until the field capture is reviewed.
+until the field capture is reviewed. Probe phase 2 adds current bytes
+`0x174-0x17A` and confirmed bytes `0x17B-0x181`, including definitions for yaw,
+steering angle and ATF-temperature faults.
+
+On the 2010 Outback, leave **Prefer ISO-14230 (K-Line) over ISO-15765 (CAN)**
+unchecked in Preferences, close any connected Transmission window and reconnect.
+The expected status bar is `SSM2 / ISO-15765` at `500 Kbaud`. If it ends on
+`SSM2 / ISO-14230` at `4800 baud`, either that preference is still enabled or
+the CAN attempt failed and FreeSSM used its K-Line fallback. Save that status
+bar and do not clear memory or run actuator tests.
 
 ## Vehicle scope for the first test
 

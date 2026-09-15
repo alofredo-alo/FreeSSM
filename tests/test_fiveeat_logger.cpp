@@ -10,11 +10,13 @@ namespace
 
 const unsigned int expectedCurrentDTCAddresses[] = {
 	0x09C, 0x09D, 0x09E, 0x0A6, 0x0F0, 0x0F1,
-	0x0F2, 0x0F3, 0x123, 0x124, 0x125, 0x162
+	0x0F2, 0x0F3, 0x123, 0x124, 0x125, 0x162,
+	0x174, 0x175, 0x176, 0x177, 0x178, 0x179, 0x17A
 };
 const unsigned int expectedConfirmedDTCAddresses[] = {
 	0x0BC, 0x0BD, 0x0BE, 0x0C6, 0x0F4, 0x0F5,
-	0x0F6, 0x0F7, 0x12B, 0x12C, 0x12D, 0x167
+	0x0F6, 0x0F7, 0x12B, 0x12C, 0x12D, 0x167,
+	0x17B, 0x17C, 0x17D, 0x17E, 0x17F, 0x180, 0x181
 };
 
 
@@ -120,12 +122,12 @@ int main(int argc, char *argv[])
 	require(probe.loadDiagnosticProbe("b1 ab-21:71 00", &error), error);
 	require(probe.isDiagnosticProbe(), "field probe not marked as unverified probe");
 	require(probe.unitIdentifier() == "B1AB217100", "probe unit identifier mismatch");
-	require(probe.definitionVersion() == "5eat-dtc-field-probe-v1",
+	require(probe.definitionVersion() == "5eat-dtc-field-probe-v2",
 	        "probe definition version mismatch");
-	require(probe.parameters().size() == 24, "probe must expose all 24 raw DTC bytes");
-	require(probe.diagnosticBlocks().size() == 12, "probe must expose twelve DTC pairs");
+	require(probe.parameters().size() == 38, "probe must expose all 38 raw DTC bytes");
+	require(probe.diagnosticBlocks().size() == 19, "probe must expose nineteen DTC pairs");
 	require(probe.parameters().front().address == 0x09C, "first probe address mismatch");
-	require(probe.parameters().back().address == 0x167, "last probe address mismatch");
+	require(probe.parameters().back().address == 0x181, "last probe address mismatch");
 	for (std::size_t index = 0; index < probe.diagnosticBlocks().size(); ++index)
 	{
 		const FiveEATLoggerDefinitions::DiagnosticBlock& block =

@@ -77,10 +77,18 @@ Turbine Revolution Speed y corrientes/presiones de solenoides. Después repite e
 al protocolo SSM1 antiguo y no es válido para ese vehículo.
 
 La ROM de campo B1AB217100 usa un sondeo específico y aparecerá como
-**5EAT DTC probe (unverified)**. Conserva los datos genéricos y añade 24
+**5EAT DTC probe (unverified)**. Conserva los datos genéricos y añade 38
 parámetros “5EAT DTC probe ... raw” para registrar, en decimal, cada byte actual
 y confirmado. El sondeo sólo consulta direcciones Select Monitor menores que
-0x200; ejecútalo siempre con --read-only y conserva capturas de los 24 valores.
+0x200; ejecútalo siempre con --read-only y conserva capturas de los 38 valores.
+La fase 2 incluye `0x174–0x17A` y sus memorias `0x17B–0x181`, banco que contiene
+P1764/P1765 (yaw), P1767 (dirección) y P1723/P0711 (temperatura ATF).
+
+Para el Outback 2010, deja desmarcada en Preferencias la opción **Preferir
+ISO-14230 (K-Line) sobre ISO-15765 (CAN)**. Al reconectar, la barra inferior debe
+indicar `SSM2 / ISO-15765` y `500 Kbaud`; si indica `SSM2 / ISO-14230` y `4800
+baud`, FreeSSM cayó a K-Line porque CAN no respondió o la preferencia sigue
+activa. No borres memoria para hacer esta prueba.
 
 ## Cobertura inicial
 
@@ -98,7 +106,7 @@ y confirmado. El sondeo sólo consulta direcciones Select Monitor menores que
 - Modo global `--read-only` para la captura inicial.
 - Logger 5EAT con 26 ROM IDs, parámetros específicos y 12 pares de bloques DTC.
 - Selección exacta por los cinco bytes de ROM ID, sin inferir direcciones.
-- Sondeo de campo read-only, limitado exactamente a la ROM B1AB217100, con 24
+- Sondeo de campo read-only, limitado exactamente a la ROM B1AB217100, con 38
   bytes DTC crudos visibles y decodificación provisional.
 - Interfaz seleccionable en español, inglés, alemán y turco.
 - Paquete portable reproducible con Qt 5.15.2, runtimes MinGW, plugins y hashes.

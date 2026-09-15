@@ -37,10 +37,12 @@ memoria ni ninguna escritura.
 
 Si el ID no coincide, el XML falta o falla la validación, FreeSSM conserva las
 definiciones internas anteriores y no intenta aproximar direcciones. La única
-excepción es el sondeo de campo explícito para B1AB217100: usa los 12 pares que
-son idénticos en los 26 ROM IDs del XML, los marca como no verificados y expone
-sus 24 bytes crudos como datos actuales. No convierte esa ROM en una coincidencia
-del logger ni habilita RAM directa o escrituras.
+excepción es el sondeo de campo explícito para B1AB217100: comienza con los 12
+pares idénticos en los 26 ROM IDs y agrega, en fase 2, los 7 pares
+`0x174–0x17A`/`0x17B–0x181` del banco OBD de dirección, yaw y temperatura ATF.
+Los 19 pares se marcan como no verificados y sus 38 bytes crudos se exponen como
+datos actuales. No convierte esa ROM en una coincidencia del logger ni habilita
+RAM directa o escrituras.
 
 ## Actualización
 

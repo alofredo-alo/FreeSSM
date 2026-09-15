@@ -343,10 +343,12 @@ bool FiveEATLoggerDefinitions::loadDiagnosticProbe(const std::string& unitIdenti
 		return false;
 	}
 
-	/* This is deliberately an exact, single-ROM field probe. These twelve
+	/* This is deliberately an exact, single-ROM field probe. The first twelve
 	 * current/confirmed pairs are present in every one of the 26 reversed ROMs
-	 * in the pinned 5EAT logger definition. They remain unverified for this ROM,
-	 * so the probe also exposes each byte as a raw measuring block. */
+	 * in the pinned 5EAT logger definition. The seven 0x174-0x181 pairs are a
+	 * second read-only field probe for the steering/yaw/ATF-related OBD bank
+	 * selected by SSM2 flag byte 39 bit 4. They remain unverified for this ROM,
+	 * so the probe also exposes every byte as a raw measuring block. */
 	if (_unitIdentifier != "B1AB217100")
 	{
 		setError(errorMessage, "no 5EAT DTC probe defined for unit identifier: " +
@@ -356,12 +358,16 @@ bool FiveEATLoggerDefinitions::loadDiagnosticProbe(const std::string& unitIdenti
 
 	static const unsigned int currentAddresses[] = {
 		0x09C, 0x09D, 0x09E, 0x0A6, 0x0F0, 0x0F1,
-		0x0F2, 0x0F3, 0x123, 0x124, 0x125, 0x162
+		0x0F2, 0x0F3, 0x123, 0x124, 0x125, 0x162,
+		0x174, 0x175, 0x176, 0x177, 0x178, 0x179, 0x17A
 	};
 	static const unsigned int confirmedAddresses[] = {
 		0x0BC, 0x0BD, 0x0BE, 0x0C6, 0x0F4, 0x0F5,
-		0x0F6, 0x0F7, 0x12B, 0x12C, 0x12D, 0x167
+		0x0F6, 0x0F7, 0x12B, 0x12C, 0x12D, 0x167,
+		0x17B, 0x17C, 0x17D, 0x17E, 0x17F, 0x180, 0x181
 	};
+	static_assert(sizeof(currentAddresses) == sizeof(confirmedAddresses),
+	              "5EAT DTC probe address pairs are unbalanced");
 	const std::size_t blockCount = sizeof(currentAddresses) / sizeof(currentAddresses[0]);
 
 	for (std::size_t index = 0; index < blockCount; ++index)
@@ -397,7 +403,7 @@ bool FiveEATLoggerDefinitions::loadDiagnosticProbe(const std::string& unitIdenti
 		}
 	}
 
-	_definitionVersion = "5eat-dtc-field-probe-v1";
+	_definitionVersion = "5eat-dtc-field-probe-v2";
 	_diagnosticProbe = true;
 	setError(errorMessage, "");
 	return true;

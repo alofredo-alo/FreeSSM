@@ -973,3 +973,38 @@ La marca visible esperada es
 **5EAT DTC probe (unverified) ROM B1AB217100**. La sesión de campo debe iniciarse
 con “FreeSSM.exe --read-only”; se deben guardar ambas tablas DTC y los 24 bytes
 crudos antes de interpretar o intervenir cableado/módulos.
+
+## 20. Resultado de campo del probe v1 y ampliación v2
+
+Las capturas del 15 de septiembre de 2026 validaron que el ejecutable correcto
+estaba en uso:
+
+- el título mostró `[READ-ONLY]`;
+- la TCU reportó ROM `B1 AB 21 71 00` y la marca
+  **5EAT DTC probe (unverified)**;
+- FreeSSM mostró 51 datos: 27 genéricos más los 24 bytes crudos del probe v1;
+- los 24 bytes, desde `0x09C/0x0BC` hasta `0x162/0x167`, conservaron mínimo,
+  valor actual y máximo en cero;
+- `ATF Temperature Lamp` y `Diagnosis Lamp`, ambos leídos desde `0x06D`, sí
+  alcanzaron estado On durante la sesión. La TCU está conmutando las salidas y
+  la ausencia de DTC no se explica por una pantalla congelada ni por el broker
+  J2534.
+
+La barra inferior mostró `SSM2 / ISO-14230` a `4800 baud`. FreeSSM intenta
+ISO-15765 CAN primero por defecto y sólo cae a K-Line si el intento falla; la
+excepción es que el usuario haya marcado la preferencia explícita por ISO-14230.
+La siguiente captura debe hacerse con esa preferencia desmarcada y debe conservar
+la barra de estado para diferenciar CAN real de fallback K-Line.
+
+Como los 12 pares del probe v1 resultaron cero, el probe exclusivo para
+B1AB217100 se amplió a v2 con siete pares adicionales:
+
+    actuales:    0x174 0x175 0x176 0x177 0x178 0x179 0x17A
+    confirmados: 0x17B 0x17C 0x17D 0x17E 0x17F 0x180 0x181
+
+El par `0x175/0x17C` contiene en la tabla OBD incluida P1764/P1765 (yaw), P1767
+(circuito del sensor de dirección), P1723 (ATF Temperature Sensor 2) y P0711
+(ATF Temperature). Siguen siendo direcciones no verificadas para esta ROM: el
+objetivo es conservar el valor crudo y validar en el vehículo. El probe v2 suma
+19 pares y 38 parámetros crudos; todas sus direcciones son menores que `0x200`,
+se leen con Select Monitor y no agregan ninguna escritura.
