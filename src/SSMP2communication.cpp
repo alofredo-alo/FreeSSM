@@ -486,7 +486,7 @@ void SSMP2communication::run()
 	std::vector<char> rec_buf;
 	int delay = 0;
 	unsigned char errmax = 3;
-	const unsigned int max_bytes_per_multiread = 33;
+	unsigned int max_bytes_per_multiread = 33;
 
 	// Synchronise with main-thread:
 	_mutex.lock();
@@ -501,6 +501,13 @@ void SSMP2communication::run()
 	_result = false;
 	_abort = false;
 	_mutex.unlock();
+	/* Subaru TCUs reject segmented/long SSM A8 queries over ISO-15765.
+	 * RomRaider works around this by issuing one address per CAN request.
+	 * Keep the existing batching for K-Line and all non-TCU control units. */
+	if ((_diagInterface != NULL) &&
+	    (_diagInterface->protocolType() == AbstractDiagInterface::protocol_type::SSM2_ISO15765) &&
+	    (cuaddress == 0x7E1))
+		max_bytes_per_multiread = 1;
 #ifdef __FSSM_DEBUG__
 	// Debug-output:
 	std::string op_str = "SSMP2communication::run():   operation: ";

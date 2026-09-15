@@ -25,6 +25,8 @@
 #include <QCoreApplication>
 #include <QDir>
 
+#include <string>
+
 
 SSMprotocol2::SSMprotocol2(AbstractDiagInterface *diagInterface, QString language) : SSMprotocol(diagInterface, language)
 {
@@ -217,8 +219,26 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ign
 				if (!_sysDescription.empty())
 					_sysDescription += " | ";
 				if (loggerDefinitions.isDiagnosticProbe())
-					_sysDescription += "5EAT DTC probe (unverified) ROM " +
+				{
+					_sysDescription += "5EAT DTC probe (unverified) " +
+					                   loggerDefinitions.definitionVersion() + " ROM " +
 					                   loggerDefinitions.unitIdentifier();
+					_sysDescription += " | SSM2 flags=" +
+					                   std::to_string(_ssmCUdata.flagbytescount());
+					const std::size_t diagnosticFlagIndexes[] = {28, 29, 39, 50};
+					for (std::size_t index = 0;
+					     index < sizeof(diagnosticFlagIndexes) /
+					             sizeof(diagnosticFlagIndexes[0]); ++index)
+					{
+						const std::size_t flagIndex = diagnosticFlagIndexes[index];
+						if (flagIndex < _ssmCUdata.flagbytescount())
+						{
+							_sysDescription += " f" + std::to_string(flagIndex) + "=0x" +
+							                   libFSSM::StrToHexstr(
+							                       &_ssmCUdata.flagbytes.at(flagIndex), 1);
+						}
+					}
+				}
 				else
 					_sysDescription += "5EAT logger ROM " +
 					                   loggerDefinitions.unitIdentifier();

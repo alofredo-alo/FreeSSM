@@ -1008,3 +1008,55 @@ El par `0x175/0x17C` contiene en la tabla OBD incluida P1764/P1765 (yaw), P1767
 objetivo es conservar el valor crudo y validar en el vehículo. El probe v2 suma
 19 pares y 38 parámetros crudos; todas sus direcciones son menores que `0x200`,
 se leen con Select Monitor y no agregan ninguna escritura.
+
+## 21. Investigación externa y probe DTC v3
+
+La revisión del código oficial de RomRaider confirmó que la lectura de DTC SSM
+no usa el servicio OBD genérico Mode 03: cada código se representa mediante dos
+direcciones Select Monitor, temporal y memorizada, consultadas con el comando
+SSM `A8`. Su implementación también aplica un tratamiento especial a la TCU
+sobre ISO-15765: divide las consultas y envía una sola dirección por solicitud
+CAN porque la TCU no acepta consultas largas.
+
+Fuentes verificadas:
+
+- RomRaider, `SSMLoggerConnection.java` y `SSMLoggerCANSubQuery.java`:
+  <https://github.com/RomRaider/RomRaider/tree/master/src/main/java/com/romraider/logger/ecu/comms/io/connection>
+- definición comunitaria RomRaider logger v370, que enumera D001–D488;
+- Subaru TSB 16-80-11R para 2010–2013 Legacy/Outback/Tribeca 5AT:
+  <https://static.nhtsa.gov/odi/tsbs/2013/MC-10235835-9999.pdf>
+- Subaru TSB 06-47-14 para VDC DTC C0071:
+  <https://static.nhtsa.gov/odi/tsbs/2014/MC-10093509-2280.pdf>
+- limitación VDC moderna ya reportada en FreeSSM:
+  <https://github.com/Comer352L/FreeSSM/issues/73>
+
+El probe exclusivo de B1AB217100 se amplió a v3 para consultar los 61 pares del
+banco DTC SSM2 estándar:
+
+    actual          memorizado
+    0x08E–0x0AD     actual + 0x20
+    0x0F0–0x0F3     actual + 0x04
+    0x123–0x12A     actual + 0x08
+    0x150–0x154     actual + 0x05
+    0x160–0x164     actual + 0x05
+    0x174–0x17A     actual + 0x07
+
+Son 122 bytes crudos, todos menores que `0x200`, leídos exclusivamente mediante
+Select Monitor. Para CAN, FreeSSM ahora limita las lecturas múltiples dirigidas
+a la TCU `0x7E1` a una dirección por solicitud; K-Line, ECM y demás módulos
+conservan el límite previo de 33.
+
+El DTC del sensor de ángulo de dirección `C0071` pertenece al módulo VDC/ABS, no
+a la TCU 5EAT. El diálogo ABS/VDC actual de FreeSSM usa SSM1 y no soporta el VDC
+moderno del Outback 2010. El boletín Subaru exige diagnosticar alimentación del
+sensor (10–15 V), masa, continuidad hacia VDCCM&H/U y cortos antes de reemplazar
+sensor o módulo; la calibración de punto cero es una operación aparte y no debe
+implementarse como parte de este sondeo read-only.
+
+El análisis estático de la instalación local SSM3 1.45.59.9 corroboró que
+`C0071` tiene varias causas/subtipos diferenciados: desviación excesiva, rango
+de cambio excesivo, contador, ausencia de señal, señal congelada y calibración
+incompleta, entre otras. Por eso el número base `C0071` no basta para decidir
+entre cableado, sensor, punto cero o VDCCM&H/U. Las bases SSM3 están compiladas
+en DLL PE de 32 bits que exportan `GetDbTable`; no se copió ni vinculó código,
+DLL o base propietaria al fork.

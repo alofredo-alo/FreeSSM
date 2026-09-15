@@ -77,12 +77,15 @@ Turbine Revolution Speed y corrientes/presiones de solenoides. Después repite e
 al protocolo SSM1 antiguo y no es válido para ese vehículo.
 
 La ROM de campo B1AB217100 usa un sondeo específico y aparecerá como
-**5EAT DTC probe (unverified)**. Conserva los datos genéricos y añade 38
+**5EAT DTC probe (unverified) 5eat-dtc-field-probe-v3**. La misma línea muestra
+la cantidad de flag bytes SSM2 y los valores `f28`, `f29`, `f39` y `f50` que
+anuncian bancos DTC. Conserva los datos genéricos y añade 122
 parámetros “5EAT DTC probe ... raw” para registrar, en decimal, cada byte actual
-y confirmado. El sondeo sólo consulta direcciones Select Monitor menores que
-0x200; ejecútalo siempre con --read-only y conserva capturas de los 38 valores.
-La fase 2 incluye `0x174–0x17A` y sus memorias `0x17B–0x181`, banco que contiene
-P1764/P1765 (yaw), P1767 (dirección) y P1723/P0711 (temperatura ATF).
+y confirmado. El sondeo v3 recorre los 61 pares del banco DTC SSM2 estándar
+(`0x08E–0x0AD`, `0x0F0–0x0F3`, `0x123–0x12A`, `0x150–0x154`,
+`0x160–0x164` y `0x174–0x17A`, junto con sus memorias). Sólo consulta
+direcciones Select Monitor menores que 0x200; ejecútalo siempre con
+`--read-only`.
 
 Para el Outback 2010, deja desmarcada en Preferencias la opción **Preferir
 ISO-14230 (K-Line) sobre ISO-15765 (CAN)**. Al reconectar, la barra inferior debe
@@ -106,8 +109,11 @@ activa. No borres memoria para hacer esta prueba.
 - Modo global `--read-only` para la captura inicial.
 - Logger 5EAT con 26 ROM IDs, parámetros específicos y 12 pares de bloques DTC.
 - Selección exacta por los cinco bytes de ROM ID, sin inferir direcciones.
-- Sondeo de campo read-only, limitado exactamente a la ROM B1AB217100, con 38
-  bytes DTC crudos visibles y decodificación provisional.
+- Sondeo de campo read-only, limitado exactamente a la ROM B1AB217100, con los
+  122 bytes DTC crudos estándar visibles y decodificación provisional.
+- Consultas TCU por CAN limitadas a una dirección SSM por trama, igual que la
+  ruta de compatibilidad de RomRaider; K-Line y otros módulos conservan el
+  agrupamiento anterior.
 - Interfaz seleccionable en español, inglés, alemán y turco.
 - Paquete portable reproducible con Qt 5.15.2, runtimes MinGW, plugins y hashes.
 

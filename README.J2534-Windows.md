@@ -83,21 +83,26 @@ current/confirmed DTC byte pairs. Experimental direct-RAM lock-up parameters and
 switches are excluded, and this integration adds no write operation.
 
 ROM B1AB217100 is handled separately and must display
-**5EAT DTC probe (unverified) ROM B1AB217100**. In a --read-only session,
-capture both DTC tables, then add all 38 live-data parameters whose names start
+**5EAT DTC probe (unverified) 5eat-dtc-field-probe-v3 ROM B1AB217100**. The
+same line reports the SSM2 flag-byte count and DTC capability bytes `f28`,
+`f29`, `f39` and `f50`. In a --read-only session,
+capture both DTC tables, then add all 122 live-data parameters whose names start
 with “5EAT DTC probe”. They expose the current/confirmed bytes as decimal values
 and include each hexadecimal address in the name. A nonzero undefined bit is
 shown as “???” with its address and bit; do not treat it as a validated code
-until the field capture is reviewed. Probe phase 2 adds current bytes
-`0x174-0x17A` and confirmed bytes `0x17B-0x181`, including definitions for yaw,
-steering angle and ATF-temperature faults.
+until the field capture is reviewed. Probe v3 covers all 61 standard SSM2 DTC
+pairs: current ranges `0x08E-0x0AD`, `0x0F0-0x0F3`, `0x123-0x12A`,
+`0x150-0x154`, `0x160-0x164` and `0x174-0x17A`, plus their confirmed-memory
+partners.
 
 On the 2010 Outback, leave **Prefer ISO-14230 (K-Line) over ISO-15765 (CAN)**
 unchecked in Preferences, close any connected Transmission window and reconnect.
 The expected status bar is `SSM2 / ISO-15765` at `500 Kbaud`. If it ends on
 `SSM2 / ISO-14230` at `4800 baud`, either that preference is still enabled or
 the CAN attempt failed and FreeSSM used its K-Line fallback. Save that status
-bar and do not clear memory or run actuator tests.
+bar and do not clear memory or run actuator tests. This build sends one SSM
+address per ISO-15765 request to the TCU, matching RomRaider's compatibility
+workaround for TCUs that reject long CAN queries.
 
 ## Vehicle scope for the first test
 
