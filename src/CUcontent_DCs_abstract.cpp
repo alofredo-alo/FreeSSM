@@ -18,12 +18,18 @@
  */
 
 #include "CUcontent_DCs_abstract.h"
+#include "VehicleReportPdf.h"
+#include <QDateTime>
+#include <QFileDialog>
+#include <QInputDialog>
+#include <QSaveFile>
 
 
 CUcontent_DCs_abstract::CUcontent_DCs_abstract(QWidget *parent) : QWidget(parent)
 {
 	_SSMPdev = NULL;
 	_supportedDCgroups = 0;
+	_reportButton = NULL;
 }
 
 
@@ -89,12 +95,40 @@ bool CUcontent_DCs_abstract::startDCreading()
 	connect(_SSMPdev, SIGNAL( stoppedDCreading() ), this, SLOT( callStop() ));
 	// Connect DC-table and print-button slots:
 	connectGUIelements();
+	CUtype cu;
+	if (_SSMPdev->CUtype(&cu) && (cu == CUtype::Engine || cu == CUtype::Transmission))
+	{
+		const bool current = _supportedDCgroups & (SSMprotocol::currentDTCs_DCgroup | SSMprotocol::temporaryDTCs_DCgroup);
+		const bool history = _supportedDCgroups & (SSMprotocol::historicDTCs_DCgroup | SSMprotocol::memorizedDTCs_DCgroup);
+		_reportCollector.reset(new VehicleReport::Collector(cu == CUtype::Engine ? "motor" : "transmision", "SSM", current, history));
+		VehicleReport::Reading rom;
+		rom.value = _SSMPdev->getROMID();
+		rom.status = rom.value.empty() ? VehicleReport::QueryStatus::NotQueried : VehicleReport::QueryStatus::Complete;
+		rom.source = "SSM";
+		_reportCollector->setRomId(rom);
+		if (!_reportButton && layout()) {
+			_reportButton = new QPushButton(tr("Save status report (JSON)"), this);
+			layout()->addWidget(_reportButton);
+			connect(_reportButton, SIGNAL(clicked()), this, SLOT(saveVehicleReport()));
+		}
+		if (_reportButton) _reportButton->setEnabled(true);
+		connect(_SSMPdev, SIGNAL(currentOrTemporaryDTCs(QStringList,QStringList,bool,bool)), this, SLOT(captureCurrentDTCs(QStringList,QStringList,bool,bool)), Qt::UniqueConnection);
+		connect(_SSMPdev, SIGNAL(historicOrMemorizedDTCs(QStringList,QStringList)), this, SLOT(captureHistoryDTCs(QStringList,QStringList)), Qt::UniqueConnection);
+		connect(_SSMPdev, SIGNAL(commError()), this, SLOT(reportCommunicationError()), Qt::UniqueConnection);
+	}
 	return true;
 }
 
 
 bool CUcontent_DCs_abstract::stopDCreading()
 {
+	if (_reportButton) _reportButton->setEnabled(false);
+	if (_SSMPdev) {
+		disconnect(_SSMPdev, SIGNAL(currentOrTemporaryDTCs(QStringList,QStringList,bool,bool)), this, SLOT(captureCurrentDTCs(QStringList,QStringList,bool,bool)));
+		disconnect(_SSMPdev, SIGNAL(historicOrMemorizedDTCs(QStringList,QStringList)), this, SLOT(captureHistoryDTCs(QStringList,QStringList)));
+		disconnect(_SSMPdev, SIGNAL(commError()), this, SLOT(reportCommunicationError()));
+	}
+	_reportCollector.reset();
 	if (_SSMPdev)
 	{
 		disconnect(_SSMPdev, SIGNAL( stoppedDCreading() ), this, SLOT( callStop() )); // this must be done BEFORE calling _SSMP2dev->stopDCreading() !
@@ -456,3 +490,107 @@ void CUcontent_DCs_abstract::communicationError(QString errstr)
 }
 
 
+
+namespace {
+std::vector<VehicleReport::DiagnosticCode> reportCodes(const QStringList& codes, const QStringList& descriptions, VehicleReport::CodeCategory category)
+{
+	std::vector<VehicleReport::DiagnosticCode> result;
+	for (int i = 0; i < codes.size(); ++i) {
+		VehicleReport::DiagnosticCode entry;
+		entry.code = codes.at(i).toUtf8().constData();
+		entry.description = descriptions.at(i).toUtf8().constData();
+		entry.category = category;
+		result.push_back(entry);
+	}
+	return result;
+}
+}
+
+void CUcontent_DCs_abstract::captureCurrentDTCs(QStringList codes, QStringList descriptions, bool, bool dCheckActive)
+{
+	if (!_reportCollector || !(_supportedDCgroups & (SSMprotocol::currentDTCs_DCgroup | SSMprotocol::temporaryDTCs_DCgroup))) return;
+	if (dCheckActive || codes.size() != descriptions.size()) {
+		_reportCollector->fail(dCheckActive ? "System check incomplete" : "Invalid DTC response");
+		return;
+	}
+	if (!_reportCollector->accept(VehicleReport::CodeCategory::CurrentOrTemporary,
+		reportCodes(codes, descriptions, VehicleReport::CodeCategory::CurrentOrTemporary)))
+		_reportCollector->fail("Invalid DTC response");
+}
+
+void CUcontent_DCs_abstract::captureHistoryDTCs(QStringList codes, QStringList descriptions)
+{
+	if (!_reportCollector || !(_supportedDCgroups & (SSMprotocol::historicDTCs_DCgroup | SSMprotocol::memorizedDTCs_DCgroup))) return;
+	if (codes.size() != descriptions.size()) {
+		_reportCollector->fail("Invalid DTC response");
+		return;
+	}
+	if (!_reportCollector->accept(VehicleReport::CodeCategory::HistoricOrMemorized,
+		reportCodes(codes, descriptions, VehicleReport::CodeCategory::HistoricOrMemorized)))
+		_reportCollector->fail("Invalid DTC response");
+}
+
+void CUcontent_DCs_abstract::reportCommunicationError()
+{
+	if (_reportCollector) _reportCollector->fail("Communication error");
+}
+
+void CUcontent_DCs_abstract::saveVehicleReport()
+{
+	if (!_reportCollector) return;
+	VehicleReport::Report report;
+	report.capturedAt = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
+	const VehicleReport::Module currentModule = _reportCollector->result();
+	if (currentModule.name == "motor") {
+		QString vin;
+		bool supported = false;
+		if (_SSMPdev->getCachedVIN(&vin)) {
+			report.vin.status = VehicleReport::QueryStatus::Complete;
+			report.vin.value = vin.toUtf8().constData();
+			report.vin.source = "SSM";
+		} else if (_SSMPdev->hasVINsupport(&supported) && !supported) {
+			report.vin.status = VehicleReport::QueryStatus::Unsupported;
+			report.vin.source = "SSM";
+		}
+	}
+	report.modules.push_back(currentModule);
+	const char* other = report.modules.front().name == "motor" ? "transmision" : "motor";
+	for (const char* name : {other, "abs_vdc", "airbag", "tablero"}) {
+		VehicleReport::Module module;
+		module.name = name;
+		report.modules.push_back(module);
+	}
+	bool accepted = false;
+	const int km = QInputDialog::getInt(this, tr("Vehicle report"),
+		tr("Dashboard mileage in km (-1 if unknown):"), -1, -1, 2000000000, 1, &accepted);
+	if (!accepted) return;
+	report.dashboardKm = km;
+	std::string json, error;
+	if (!VehicleReport::toJson(report, &json, &error)) {
+		QMessageBox::critical(this, tr("Error"), QString::fromStdString(error));
+		return;
+	}
+	const QString filename = QFileDialog::getSaveFileName(this, tr("Save status report"), QString(), tr("JSON files (*.json)"));
+	if (filename.isEmpty()) return;
+	QSaveFile file(filename);
+	if (!file.open(QIODevice::WriteOnly) || file.write(json.data(), static_cast<qint64>(json.size())) != static_cast<qint64>(json.size()) || !file.commit()) {
+		QMessageBox::critical(this, tr("Error"), tr("Could not save the report."));
+		return;
+	}
+	const QString pdfName = QFileDialog::getSaveFileName(this, tr("Save PDF report"),
+		QFileInfo(filename).absolutePath() + "/" + QFileInfo(filename).completeBaseName() + ".pdf", tr("PDF files (*.pdf)"));
+	if (!pdfName.isEmpty()) {
+		const QFileInfo jsonInfo(filename), pdfInfo(pdfName);
+		if (jsonInfo.absoluteFilePath() == pdfInfo.absoluteFilePath() ||
+		    (!jsonInfo.canonicalFilePath().isEmpty() && jsonInfo.canonicalFilePath() == pdfInfo.canonicalFilePath())) {
+			QMessageBox::warning(this, tr("Vehicle report"), tr("JSON and PDF must use different files."));
+			return;
+		}
+		QString pdfError;
+		if (!VehicleReport::writePdf(report, pdfName, &pdfError)) {
+			QMessageBox::warning(this, tr("Vehicle report"), tr("JSON saved, but PDF generation failed:") + "\n" + pdfError);
+			return;
+		}
+	}
+	QMessageBox::information(this, tr("Vehicle report"), tr("Report saved. Other modules were not queried."));
+}

@@ -310,6 +310,8 @@ bool SSMprotocol2::getVIN(QString *VIN)
 	std::vector<unsigned int> vinaddr;
 	if (!_has_VINsupport)
 		return false;
+	_cachedVIN.clear();
+	_hasCachedVIN = false;
 	VIN->clear();
 	if (_SSMPcom->readAddresses(addr, &vinaddrdata))
 	{
@@ -322,6 +324,8 @@ bool SSMprotocol2::getVIN(QString *VIN)
 			{
 				vin.push_back('\0');
 				*VIN = static_cast<QString>( vin.data() );
+				_cachedVIN = *VIN;
+				_hasCachedVIN = true;
 			}
 			return true;
 		}

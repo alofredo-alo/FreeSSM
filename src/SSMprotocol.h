@@ -102,6 +102,7 @@ public:
 	bool getLastActuatorTestSelection(unsigned char *actuatorTestIndex);
 	// COMMUNICATION BASED FUNCTIONS:
 	virtual bool getVIN(QString *VIN);
+	bool getCachedVIN(QString *VIN) const;
 	virtual bool startDCreading(int DCgroups);
 	virtual bool readLocalIdentifierData(std::vector<local_identifier_section_dt> *sections);
 	virtual bool restartDCreading();
@@ -129,6 +130,8 @@ protected:
 	enum CUtype _CU;
 	state_dt _state;
 	QString _language;
+	QString _cachedVIN;
+	bool _hasCachedVIN;
 	// *** CONTROL UNIT RAW DATA ***:
 	SSMCUdata _ssmCUdata;
 	std::string _sysDescription;

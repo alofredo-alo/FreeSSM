@@ -11,7 +11,10 @@ INCLUDEPATH += . src src/tinyxml
 
 
 # Input
-HEADERS += src/FreeSSM.h \
+HEADERS += src/VehicleReportPdf.h \
+           src/VehicleReportCollector.h \
+           src/VehicleReport.h \
+           src/FreeSSM.h \
            src/Languages.h \
            src/CmdLine.h \
            src/DiagnosticSafety.h \
@@ -70,7 +73,10 @@ HEADERS += src/FreeSSM.h \
            src/libFSSM.h \
            src/tinyxml2/tinyxml2.h \
 
-SOURCES += src/main.cpp \
+SOURCES += src/VehicleReportPdf.cpp \
+           src/VehicleReportCollector.cpp \
+           src/VehicleReport.cpp \
+           src/main.cpp \
            src/FreeSSM.cpp \
            src/CmdLine.cpp \
            src/EngineDialog.cpp \

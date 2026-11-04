@@ -112,6 +112,8 @@ void SSMprotocol::resetCUdata()
 	else
 		_state = state_needSetup;	// MUST BE DONE AFTER ALL CALLS OF MEMBER-FUNCTIONS AND BEFORE EMITTING SIGNALS
 	// RESET ECU DATA:
+	_cachedVIN.clear();
+	_hasCachedVIN = false;
 	_ssmCUdata.clear();
 	// Clear system description:
 	_sysDescription.clear();
@@ -403,6 +405,14 @@ bool SSMprotocol::getVIN(QString *VIN)
 {
 	(void)*VIN;
 	return false;
+}
+
+
+bool SSMprotocol::getCachedVIN(QString *VIN) const
+{
+	if (!VIN || !_hasCachedVIN || _state == state_needSetup) return false;
+	*VIN = _cachedVIN;
+	return true;
 }
 
 

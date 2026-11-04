@@ -323,6 +323,50 @@ The Control Unit didn&apos;t accept the new value !</source>
 <context>
     <name>CUcontent_DCs_abstract</name>
     <message>
+        <source>Save PDF report</source>
+        <translation>Guardar informe PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf)</source>
+        <translation>Archivos PDF (*.pdf)</translation>
+    </message>
+    <message>
+        <source>JSON saved, but PDF generation failed:</source>
+        <translation>Se guardó el JSON, pero no fue posible generar el PDF:</translation>
+    </message>
+    <message>
+        <source>JSON and PDF must use different files.</source>
+        <translation>El JSON y el PDF deben guardarse en archivos diferentes.</translation>
+    </message>
+    <message>
+        <source>Save status report (JSON)</source>
+        <translation>Guardar informe de estado (JSON)</translation>
+    </message>
+    <message>
+        <source>Vehicle report</source>
+        <translation>Informe del vehículo</translation>
+    </message>
+    <message>
+        <source>Dashboard mileage in km (-1 if unknown):</source>
+        <translation>Kilometraje del tablero en km (-1 si se desconoce):</translation>
+    </message>
+    <message>
+        <source>Save status report</source>
+        <translation>Guardar informe de estado</translation>
+    </message>
+    <message>
+        <source>JSON files (*.json)</source>
+        <translation>Archivos JSON (*.json)</translation>
+    </message>
+    <message>
+        <source>Could not save the report.</source>
+        <translation>No se pudo guardar el informe.</translation>
+    </message>
+    <message>
+        <source>Report saved. Other modules were not queried.</source>
+        <translation>Informe guardado. Los demás módulos no se consultaron.</translation>
+    </message>
+    <message>
         <location filename="src/CUcontent_DCs_abstract.cpp" line="43"/>
         <source>Couldn&apos;t start Diagnostic Codes Reading.</source>
         <translation>No se pudo iniciar la lectura de códigos de diagnóstico.</translation>

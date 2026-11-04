@@ -30,6 +30,8 @@
 #include <QPrinter>
 #include <QPrintDialog>
 #include "SSMprotocol.h"
+#include "VehicleReportCollector.h"
+#include <memory>
 
 
 class CUcontent_DCs_abstract : public QWidget
@@ -46,6 +48,8 @@ public:
 protected:
 	SSMprotocol * _SSMPdev;
 	int _supportedDCgroups;
+	std::unique_ptr<VehicleReport::Collector> _reportCollector;
+	QPushButton *_reportButton;
 
 	virtual void connectGUIelements() = 0;
 	virtual void disconnectGUIelements() = 0;
@@ -58,6 +62,10 @@ protected:
 	void communicationError(QString errstr);
 
 protected slots:
+	void captureCurrentDTCs(QStringList codes, QStringList descriptions, bool testMode, bool dCheckActive);
+	void captureHistoryDTCs(QStringList codes, QStringList descriptions);
+	void reportCommunicationError();
+	void saveVehicleReport();
 	void callStart();
 	void callStop();
 #ifndef SMALL_RESOLUTION

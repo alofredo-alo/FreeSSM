@@ -1,0 +1,2 @@
+// Declaration-only stand-in: communication tests do not use Qt strings.
+class QString {};
