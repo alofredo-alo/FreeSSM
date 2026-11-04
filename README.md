@@ -6,7 +6,7 @@ Fork de FreeSSM orientado a diagnóstico Subaru mediante interfaces SAE J2534,
 incluido Tactrix OpenPort 2.0. La aplicación es de 64 bits y utiliza un broker de
 32 bits para cargar las DLL J2534 de proveedores que no ofrecen una DLL x64.
 
-> Estado: candidato beta local para pruebas controladas, todavía no publicado. Motor y transmisión
+> Estado: beta para pruebas controladas. Motor y transmisión
 > son los primeros objetivos. El soporte moderno de ABS/VDC y sensor de ángulo
 > de dirección todavía no está implementado.
 
@@ -16,22 +16,19 @@ es exclusivamente de lectura y no modifica todavía ABS/VDC.
 
 ## Instalación rápida en Windows
 
-1. Instala el paquete oficial
-   [OpenPort drivers and J2534 DLL](https://www.tactrix.com/index.php?Itemid=61&id=38&option=com_content&view=category)
-   de Tactrix. No copies `op20pt32.dll` manualmente ni la registres por tu cuenta.
-2. Abre
-   [Actions / Windows J2534 package](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml),
-   entra en la ejecución exitosa más reciente y descarga el artefacto
-   `FreeSSM-J2534-x64`.
-3. Extrae el ZIP completo en una carpeta local. No ejecutes la aplicación dentro
-   del ZIP.
-4. Mantén `FreeSSM.exe` y `j2534_broker.exe` en la misma carpeta. No se requiere
-   instalar FreeSSM ni ejecutarlo como administrador.
+1. Descarga `FreeSSM-1.3.0-beta.1-windows-x64.zip` desde la
+   [release beta](https://github.com/alofredo-alo/FreeSSM/releases/tag/v1.3.0-beta.1).
+2. Extrae el ZIP completo en una carpeta local. Mantén `FreeSSM.exe` y
+   `j2534_broker.exe` en la misma carpeta. Puedes probar la **demo** sin adaptador.
+3. Para usar OpenPort 2.0, instala los
+   [controladores oficiales OpenPort y la DLL J2534](https://www.tactrix.com/index.php?Itemid=61&id=38&option=com_content&view=category).
+   No copies ni registres manualmente `op20pt32.dll`.
+4. Inicia `FreeSSM.exe` y selecciona el modo de sesión. No es necesario
+   ejecutar FreeSSM como administrador.
 5. Si Windows no está configurado en español, abre **Preferences**, selecciona
    **Spanish** en **Language** y confirma con **OK**. El cambio es inmediato.
 
-Los artefactos de Actions caducan. Si no aparece uno disponible, ejecuta el
-workflow manualmente con **Run workflow** y descarga el resultado cuando termine.
+El archivo `.sha256` de la release permite verificar la integridad del ZIP.
 
 ## Primera prueba: interfaz sin vehículo
 

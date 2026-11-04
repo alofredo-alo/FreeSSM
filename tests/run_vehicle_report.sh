@@ -14,7 +14,7 @@ with open(sys.argv[1], encoding='utf-8') as stream:
     report = json.load(stream)
 assert report['formato_version'] == '1.0'
 assert report['simulado'] is False
-assert report['version_aplicacion'] == '1.3.0-beta.1-candidate'
+assert report['version_aplicacion'] == '1.3.0-beta.1'
 assert report['vehiculo']['modelo_declarado'] == 'Outback "prueba"\nñ'
 assert report['vehiculo']['odometro_tablero_km'] == 185430
 assert report['vehiculo']['vin']['estado'] == 'no_consultada'

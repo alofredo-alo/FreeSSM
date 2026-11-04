@@ -1,8 +1,8 @@
 # Candidato beta: validación y pendientes
 
-Fecha: 2026-11-04. Versión identificada en la aplicación: `1.3.0-beta.1-candidate`.
-Candidato local, sin etiqueta, publicación ni paquete beta distribuido. El objetivo
-es una herramienta de diagnóstico útil; el informe de estado es una función de ella.
+Fecha: 2026-11-04. Versión identificada en la aplicación: `1.3.0-beta.1`.
+La primera beta es una herramienta de diagnóstico en desarrollo; el informe de
+estado es una función de ella. Las pruebas pendientes se mantienen a continuación.
 
 ## Estado y límites
 

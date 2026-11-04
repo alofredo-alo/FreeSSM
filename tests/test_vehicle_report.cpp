@@ -45,7 +45,7 @@ int main() {
     missing.name = "tablero";
     report.modules.push_back(missing);
 
-    report.applicationVersion = "1.3.0-beta.1-candidate";
+    report.applicationVersion = "1.3.0-beta.1";
     Collector collector("motor", "SSM", true, true);
     collector.setUnverifiedDtcDefinitions(true);
     assert(collector.result().status == QueryStatus::NotQueried);

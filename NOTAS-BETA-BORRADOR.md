@@ -1,9 +1,8 @@
-# FreeSSM 1.3.0-beta.1 — borrador de notas
+# FreeSSM 1.3.0-beta.1
 
-Este documento prepara una posible primera publicación beta. La versión y el
-contenido definitivos deben corresponder al commit y a los paquetes realmente
-verificados. **Aún no se ha publicado una beta ni validado este candidato en
-Windows limpio.**
+Primera beta pública para pruebas. El paquete Windows se distribuye con su
+huella SHA256. Las pruebas con hardware y vehículos siguen pendientes de
+validación específica.
 
 ## Qué ofrece
 
@@ -21,9 +20,9 @@ Windows limpio.**
 
 ## Límites conocidos
 
-- La compilación y pruebas Linux cubren simulación; este candidato concreto debe
-  compilarse y probarse en Windows y macOS. La compatibilidad del adaptador y
-  vehículo reales depende de pruebas específicas de hardware, no de la demo.
+- Las pruebas automatizadas cubren Linux y el arranque del paquete Windows en
+  GitHub Actions; aún falta probarlo en un Windows de usuario y con hardware.
+  La compatibilidad con adaptador y vehículo depende de pruebas específicas.
 - El informe no verifica kilometraje electrónico ni alteración del odómetro; el
   kilometraje del tablero es ingresado por el usuario. Los códigos disponibles
   no son un historial completo y una lectura vacía no garantiza ausencia de fallas.
@@ -38,10 +37,5 @@ Windows limpio.**
 - macOS permanece experimental; la compatibilidad efectiva con dispositivos y
   arquitecturas debe comprobarse antes de anunciar un paquete soportado.
 
-## Antes de publicar
 
-Verificar que el commit seleccionado coincide con `BUILD-INFO.txt`, repetir la
-compilación del paquete, contrastar hashes y completar la guía
-`VALIDACION-BETA-WINDOWS.md`. Registrar los resultados reales y marcar cualquier
-función o plataforma pendiente. Publicar como pre-release solo cuando se decida
-expresamente hacerlo.
+Para detalles y procedimiento de validación consulta `VALIDACION-BETA-WINDOWS.md`.
