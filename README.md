@@ -130,9 +130,11 @@ Esta función está probada con ECU simuladas; aún necesita validación con
 OpenPort y vehículos reales. No confirma el kilometraje electrónico ni cubre
 ABS/VDC, airbags, tablero o el historial completo de fallas.
 
-La adaptación para macOS es **experimental**: el backend serial pasó pruebas
-con pseudoterminales en Linux, pero todavía no se ha compilado en macOS ni
-validado con hardware. Consulta [README.macOS-experimental.md](README.macOS-experimental.md).
+La adaptación para macOS es **experimental**: compiló en macOS 15 Intel mediante
+[GitHub Actions](https://github.com/alofredo-alo/FreeSSM/actions/runs/41814022624)
+y el backend serial pasó pruebas con pseudoterminales en Linux. Apple Silicon,
+los adaptadores y los vehículos aún no están validados. Consulta
+[README.macOS-experimental.md](README.macOS-experimental.md).
 
 ## Agradecimientos y procedencia
 

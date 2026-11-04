@@ -6,12 +6,13 @@ la enumeración de `/dev/cu.*` para no abrir dispositivos al listarlos.
 El backend J2534 utiliza el cargador POSIX del fork actual y busca las
 bibliotecas configuradas junto al ejecutable del bundle.
 
-**Estado:** no se ha compilado ni ejecutado en macOS y no se ha probado con
-cables ni vehículos. El código serial se compiló en Linux con un stub temporal
-para el encabezado de IOKit y se probó con una ECU simulada, a 4800 baud, con
-y sin eco y desde un hilo de trabajo. Eso no valida el SDK de Apple,
-`IOSSIOSPEED`, Apple Silicon, Intel, J2534, drivers ni compatibilidad física.
-No se garantiza que las bibliotecas J2534 de Windows existan para macOS.
+**Estado:** la [compilación en macOS 15 Intel](https://github.com/alofredo-alo/FreeSSM/actions/runs/41814022624)
+generó el bundle y sus recursos, pero no se ha probado la aplicación con cables
+ni vehículos. El código serial también se probó en Linux con un stub temporal
+para el encabezado IOKit y una ECU simulada, a 4800 baud, con y sin eco y desde
+un hilo de trabajo. Esto no valida la comunicación física, `IOSSIOSPEED`, Apple
+Silicon, J2534 ni drivers. Las bibliotecas J2534 de Windows no son bibliotecas
+nativas de macOS.
 
 ## Compilación de validación en un Mac
 
@@ -30,10 +31,10 @@ qmake "$source_dir/FreeSSM.pro" 'CONFIG+=release' || exit 1
 make -j2
 ```
 
-Se espera que qmake genere `FreeSSM.app` con traducciones, fuentes y
-`definitions/*.xml` en `Contents/MacOS`. Este procedimiento aún no ha sido
-probado en macOS; registrar versión de macOS, arquitectura, Qt, salida y
-resultado de compilación antes de afirmar soporte. No conectar un vehículo
+Qmake debe generar `FreeSSM.app` con traducciones, fuentes y `definitions/*.xml`
+en `Contents/MacOS`. El script de prueba pasó en un runner Intel de macOS 15;
+registrar versión de macOS, arquitectura, Qt y resultado en otras plataformas
+antes de afirmar soporte para ellas. No conectar un vehículo
 para esta comprobación de compilación.
 
 La comprobación parcial disponible en Linux es:
@@ -47,4 +48,4 @@ requieren una planificación y autorización separadas.
 
 También puede usarse `./tests/run_macos_build_smoke.sh`: compila en un
 directorio temporal y comprueba que el ejecutable y los recursos principales
-estén dentro del bundle. El script no ha sido ejecutado en un Mac.
+estén dentro del bundle. El script pasó en GitHub Actions sobre macOS 15 Intel, sin hardware.
