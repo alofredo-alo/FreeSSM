@@ -42,11 +42,14 @@ struct Module {
     std::string source;
     std::string detail;
     Reading romId;
+    bool unverifiedDtcDefinitions = false; // Explicit experimental definition, not a general validation claim.
     std::vector<DiagnosticCode> codes;
     std::vector<DtcCoverage> coverage;
 };
 
 struct Report {
+    bool simulated = false;
+    std::string applicationVersion;
     std::string capturedAt; // ISO 8601 with timezone; set by the caller.
     std::string declaredModel;
     int declaredYear = 0; // 0 means not supplied.

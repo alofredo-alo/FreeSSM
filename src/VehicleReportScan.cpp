@@ -86,6 +86,7 @@ Module scanOne(AbstractDiagInterface* iface, const QString& language, bool prefe
     const bool history = groups & (SSMprotocol::historicDTCs_DCgroup | SSMprotocol::memorizedDTCs_DCgroup);
     Collector collector(failure.name, "SSM2", current, history);
     collector.setRomId(rom);
+    collector.setUnverifiedDtcDefinitions(protocol->hasUnverifiedDtcDefinitions());
     if (!current && !history) {
         Module output = collector.result();
         protocol.reset(); iface->disconnect(); return output;
@@ -134,6 +135,8 @@ Report scanEngineAndTransmission(AbstractDiagInterface* iface, const QString& la
                                  bool preferKLine, QWidget* parent) {
     ReadOnlyGuard guard;
     Report report;
+    report.simulated = DiagnosticSafety::isDemo();
+    report.applicationVersion = QCoreApplication::applicationVersion().toStdString();
     report.capturedAt = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
     if (!iface || !iface->isOpen() || iface->isConnected()) {
         for (const char* name : {"motor", "transmision"}) {

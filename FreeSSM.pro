@@ -11,7 +11,11 @@ INCLUDEPATH += . src src/tinyxml
 
 
 # Input
-HEADERS += src/MeasurementFile.h \
+HEADERS += src/DemoDiagInterface.h \
+           src/SessionMode.h \
+           src/OBDReadiness.h \
+           src/OBDFreezeFrame.h \
+           src/MeasurementFile.h \
            src/VehicleReportScan.h \
            src/VehicleReportPdf.h \
            src/VehicleReportCollector.h \
@@ -75,7 +79,11 @@ HEADERS += src/MeasurementFile.h \
            src/libFSSM.h \
            src/tinyxml2/tinyxml2.h \
 
-SOURCES += src/MeasurementFile.cpp \
+SOURCES += src/DemoDiagInterface.cpp \
+           src/SessionMode.cpp \
+           src/OBDReadiness.cpp \
+           src/OBDFreezeFrame.cpp \
+           src/MeasurementFile.cpp \
            src/VehicleReportScan.cpp \
            src/VehicleReportPdf.cpp \
            src/VehicleReportCollector.cpp \

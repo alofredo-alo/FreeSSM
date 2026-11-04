@@ -1,6 +1,7 @@
 // Tests the production SSM2 communication core with a synthetic interface.
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "SSMP2communication_core.h"
+#include "DiagnosticSafety.h"
 #include <cassert>
 #include <iostream>
 #include <vector>
@@ -35,7 +36,9 @@ public:
     bool disconnect() override { return true; }
     bool clearSendBuffer() override { return true; }
     bool clearReceiveBuffer() override { pending.clear(); return true; }
+    int writes = 0;
     bool write(std::vector<char> request) override {
+        ++writes;
         if (mode == WriteError) return false;
         if (mode == Echo) pending = request;
         std::vector<char> reply = {'\x80', '\xF0', '\x10', '\x02', '\xE0', '\x42'};
@@ -66,5 +69,14 @@ int main() {
             assert(data.empty());
         }
     }
-    std::cout << "SSM2: echo, no echo, incomplete, write error and checksum OK\n";
+    FakeInterface blocked(FakeInterface::NoEcho);
+    SSMP2communication_core core(&blocked);
+    assert(DiagnosticSafety::isReadOnly());
+    assert(core.WriteDatabyte(0x10, 0x1234, 0x42) == Result::error);
+    assert(blocked.writes == 0);
+    DiagnosticSafety::setReadOnly(false);
+    core.WriteDatabyte(0x10, 0x1234, 0x42);
+    assert(blocked.writes == 1);
+    DiagnosticSafety::setReadOnly(true);
+    std::cout << "SSM2: read responses and read-only write blocking OK\n";
 }

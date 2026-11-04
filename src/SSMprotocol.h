@@ -92,6 +92,7 @@ public:
 	bool hasTestMode(bool *TMsup);
 	bool hasActuatorTests(bool *ATsup);
 	bool getSupportedDCgroups(int *DCgroups);
+	bool hasUnverifiedDtcDefinitions() const { return _unverifiedDtcDefinitions; }
 	bool getLastDCgroupsSelection(int *DCgroups);
 	bool getSupportedMBs(std::vector<mb_dt> *supportedMBs);
 	bool getSupportedSWs(std::vector<sw_dt> *supportedSWs);
@@ -135,6 +136,7 @@ protected:
 	// *** CONTROL UNIT RAW DATA ***:
 	SSMCUdata _ssmCUdata;
 	std::string _sysDescription;
+	bool _unverifiedDtcDefinitions = false;
 	// *** COMMUNICATION OBJECT ***
 	AbstractSSMcommunication *_SSMPcom;
 	// *** CONTROL UNIT DEFINITION INTERFACE ***:

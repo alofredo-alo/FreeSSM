@@ -11,6 +11,7 @@ public:
     Collector(const std::string& moduleName, const std::string& source,
               bool currentSupported, bool historySupported);
     void setRomId(const Reading& romId);
+    void setUnverifiedDtcDefinitions(bool unverified);
     bool accept(CodeCategory category, const std::vector<DiagnosticCode>& codes);
     void fail(const std::string& detail);
     Module result() const;

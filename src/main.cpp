@@ -18,13 +18,14 @@
  */
 
 
-#define FSSM_VERSION "(devel)"
+#define FSSM_VERSION "1.3.0-beta.1-candidate"
 
 
 #include <QtGui>
 #include "FreeSSM.h"
 #include "CmdLine.h"
 #include "DiagnosticSafety.h"
+#include "SessionMode.h"
 #include <iostream>
 #include <cstring>
 
@@ -166,14 +167,15 @@ int main(int argc, char *argv[])
 	}
 	if (CmdLine::parseForOption(&cmdline_args, "", "--j2534-probe", &option_values))
 	{
-		if (!option_values.empty())
+		if (!option_values.empty() || cmdline_args.size() > 1)
 		{
-			CmdLine::printError("option --j2534-probe does not accept values");
+			CmdLine::printError("--j2534-probe must be used alone");
 			return ERROR_BADCMDLINEARGS;
 		}
 		return runJ2534Probe();
 	}
-	if (CmdLine::parseForOption(&cmdline_args, "", "--read-only", &option_values))
+	const bool readOnlyRequested = CmdLine::parseForOption(&cmdline_args, "", "--read-only", &option_values);
+	if (readOnlyRequested)
 	{
 		if (!option_values.empty())
 		{
@@ -181,6 +183,21 @@ int main(int argc, char *argv[])
 			return ERROR_BADCMDLINEARGS;
 		}
 		DiagnosticSafety::setReadOnly(true);
+	}
+	const bool fullRequested = CmdLine::parseForOption(&cmdline_args, "", "--enable-write", &option_values);
+	if (fullRequested)
+	{
+		if (!option_values.empty() || readOnlyRequested)
+		{
+			CmdLine::printError("--enable-write accepts no values and cannot be combined with --read-only");
+			return ERROR_BADCMDLINEARGS;
+		}
+	}
+	const bool demoRequested = CmdLine::parseForOption(&cmdline_args, "", "--demo", &option_values);
+	if (demoRequested && (!option_values.empty() || readOnlyRequested || fullRequested))
+	{
+		CmdLine::printError("--demo accepts no values and cannot be combined with another mode");
+		return ERROR_BADCMDLINEARGS;
 	}
 	// Validate command line option dependencies:
 	if (!CmdLine::validateOptionDependencies(cmdline_args))
@@ -224,6 +241,22 @@ int main(int argc, char *argv[])
 	QFont appfont = app.font();
 	appfont.setFamily("Liberation Sans");
 	app.setFont( appfont );
+	SessionMode::Mode mode = SessionMode::Mode::Cancelled;
+	if (demoRequested) mode = SessionMode::Mode::Demo;
+	else if (readOnlyRequested) mode = SessionMode::Mode::ReadOnly;
+	else if (fullRequested) mode = SessionMode::Mode::Full;
+	else mode = SessionMode::select();
+	if (mode == SessionMode::Mode::Cancelled) return NOERROR;
+	if (mode == SessionMode::Mode::Full && !SessionMode::confirmFull()) return NOERROR;
+	DiagnosticSafety::setDemo(mode == SessionMode::Mode::Demo);
+	DiagnosticSafety::setReadOnly(mode != SessionMode::Mode::Full);
+	if (mode == SessionMode::Mode::Demo)
+	{
+		if (cmdline_args.size() > 1) {
+			CmdLine::printError("demo does not support control unit startup options");
+			return ERROR_BADCMDLINEARGS;
+		}
+	}
 	// Open main window:
 	FreeSSM *freessm_mainwindow = new FreeSSM(&app);
 #ifdef SMALL_RESOLUTION

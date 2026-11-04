@@ -20,6 +20,7 @@
 #include "FreeSSM.h"
 #include "CmdLine.h"
 #include "DiagnosticSafety.h"
+#include "DemoDiagInterface.h"
 #include "VehicleReportScan.h"
 #include "VehicleReportPdf.h"
 #include <QSaveFile>
@@ -61,21 +62,25 @@ FreeSSM::FreeSSM(QApplication *app)
 	connect(_report_button, SIGNAL(clicked()), this, SLOT(vehicleReport()));
 #endif
 	setWindowFlags( windowFlags() & ~Qt::WindowMaximizeButtonHint );	// only necessary for MS Windows
+	QString applicationTitle = "FreeSSM " + QApplication::applicationVersion();
+	if (DiagnosticSafety::isDemo())
+		applicationTitle += " [DEMO - DATOS SIMULADOS]";
+	else if (DiagnosticSafety::isReadOnly())
+		applicationTitle += " [READ-ONLY]";
+	else
+		applicationTitle += " [WRITE ENABLED]";
+	this->setWindowTitle(applicationTitle);
 #ifndef SMALL_RESOLUTION
 	// LOAD BACKGROUND PICTURE:
 	background_label->setPixmap(appsPath + "/background.png");
 	// SHOW PROGRAM TITEL + VERSION:
 	QFont titlefont = this->font();
-	titlefont.setPointSize(20);
+	titlefont.setPointSize(14);
 	titlefont.setBold(true);
 	_progtitle_label = new QLabel(this);
-	_progtitle_label->setGeometry(20, 17, 315, 34);
+	_progtitle_label->setGeometry(20, 17, 560, 34);
 	_progtitle_label->setFont( titlefont );
-	QString applicationTitle = "FreeSSM " + QApplication::applicationVersion();
-	if (DiagnosticSafety::isReadOnly())
-		applicationTitle += " [READ-ONLY]";
 	_progtitle_label->setText(applicationTitle);
-	this->setWindowTitle(applicationTitle);
 	// PLACE WINDOW IN THE CENTER OF THE SCREEN:
 	QRect parent_geometry;
 #if QT_VERSION < 0x050000
@@ -197,7 +202,15 @@ FreeSSM::FreeSSM(QApplication *app)
 	_report_button->setText(tr("Vehicle status report"));
 #endif
 	// CHECK THE SAVED INTERFACE SETTINGS AND CORRECT IF NECESSARY:
-	if (savedinterfacetype == QString::number(static_cast<int>(AbstractDiagInterface::interface_type::J2534)))	// J2534-Pass-Through
+	if (DiagnosticSafety::isDemo())
+	{
+		_iface_filename = "DEMO";
+		for (QPushButton* button : {tpms_pushButton, absvdc_pushButton, cruisecontrol_pushButton, aircon_pushButton, preferences_pushButton}) {
+			button->setEnabled(false);
+			button->setToolTip(QString::fromUtf8("No disponible en modo demo"));
+		}
+	}
+	else if (savedinterfacetype == QString::number(static_cast<int>(AbstractDiagInterface::interface_type::J2534)))	// J2534-Pass-Through
 	{
 		_iface_type = AbstractDiagInterface::interface_type::J2534;
 		const std::vector<J2534Library> J2534libs = J2534_API::getAvailableJ2534Libs();
@@ -247,6 +260,7 @@ FreeSSM::FreeSSM(QApplication *app)
 	}
 	// CREATE ACTION FOR DUMPING CONTROL UNIT ID-DATA TO FILE:
 	_dump_action = new QAction(this);
+	if (DiagnosticSafety::isDemo()) _dump_action->setEnabled(false);
 	_dump_action->setShortcut( QKeySequence("Ctrl+Alt+Return") );
 	this->addAction(_dump_action);
 	// CONNECT SIGNALS/SLOTS:
@@ -513,6 +527,12 @@ void FreeSSM::about()
 
 AbstractDiagInterface * FreeSSM::initInterface()
 {
+	if (DiagnosticSafety::isDemo()) {
+		DemoDiagInterface* demo = new DemoDiagInterface;
+		if (demo->open("demo")) return demo;
+		delete demo;
+		return NULL;
+	}
 	// Check if an interface is selected:
 	if (_iface_filename == "")
 	{

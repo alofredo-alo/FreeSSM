@@ -16,8 +16,16 @@ class DiagnosticSafety
 public:
 	static void setReadOnly(bool enabled)
 	{
-		readOnlyStorage() = enabled;
+		readOnlyStorage() = enabled || demoStorage();
 	}
+
+	static void setDemo(bool enabled)
+	{
+		demoStorage() = enabled;
+		if (enabled) readOnlyStorage() = true;
+	}
+
+	static bool isDemo() { return demoStorage(); }
 
 	static bool isReadOnly()
 	{
@@ -25,9 +33,15 @@ public:
 	}
 
 private:
-	static bool& readOnlyStorage()
+	static bool& demoStorage()
 	{
 		static bool enabled = false;
+		return enabled;
+	}
+
+	static bool& readOnlyStorage()
+	{
+		static bool enabled = true;
 		return enabled;
 	}
 };

@@ -117,6 +117,7 @@ void SSMprotocol::resetCUdata()
 	_ssmCUdata.clear();
 	// Clear system description:
 	_sysDescription.clear();
+	_unverifiedDtcDefinitions = false;
 	_has_OBD2 = false;
 	_has_Immo = false;
 	_has_ImmoTest = false;

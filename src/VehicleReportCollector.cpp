@@ -16,6 +16,7 @@ Collector::Collector(const std::string& name, const std::string& source,
     module_.coverage.push_back(history);
 }
 void Collector::setRomId(const Reading& value) { module_.romId = value; }
+void Collector::setUnverifiedDtcDefinitions(bool value) { module_.unverifiedDtcDefinitions = value; }
 bool Collector::accept(CodeCategory category, const std::vector<DiagnosticCode>& codes) {
     if (failed_) return false;
     std::size_t index;

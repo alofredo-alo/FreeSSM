@@ -6,7 +6,7 @@ Fork de FreeSSM orientado a diagnóstico Subaru mediante interfaces SAE J2534,
 incluido Tactrix OpenPort 2.0. La aplicación es de 64 bits y utiliza un broker de
 32 bits para cargar las DLL J2534 de proveedores que no ofrecen una DLL x64.
 
-> Estado: versión de integración para pruebas controladas. Motor y transmisión
+> Estado: candidato beta local para pruebas controladas, todavía no publicado. Motor y transmisión
 > son los primeros objetivos. El soporte moderno de ABS/VDC y sensor de ángulo
 > de dirección todavía no está implementado.
 
@@ -65,8 +65,23 @@ reg.exe query "HKLM\SOFTWARE\PassThruSupport.04.04" /s /reg:64
 .\FreeSSM.exe --read-only
 ```
 
-Confirma `[READ-ONLY]` en el título. Este modo bloquea borrado de memoria,
-ajustes, pruebas de actuadores y escrituras de protocolo.
+Al iniciar sin opciones aparece un selector y debes elegir un modo; ninguno se
+activa automáticamente. **Solo lectura** es la opción recomendada. La opción
+`--read-only` entra directamente en ese modo; confirma `[READ-ONLY]` en el título.
+Bloquea borrado de memoria, ajustes, pruebas de actuadores y escrituras de
+protocolo. **Diagnóstico completo** conserva las funciones originales y exige
+confirmar una advertencia antes de habilitarlas. `--enable-write` solicita ese
+mismo modo y también exige confirmación. No combines opciones de modo.
+
+### Demo sin vehículo
+
+Selecciona **Demo** al iniciar, o ejecuta `FreeSSM --demo`. La demo abre la ventana normal de FreeSSM: entra en **Motor** o **Transmisión**
+para consultar identificación, códigos y valores ficticios. Las mediciones de
+motor incluyen valores que cambian con el tiempo. El informe habitual se guarda
+en JSON y PDF marcados **DATOS SIMULADOS**. La interfaz simulada funciona en
+memoria y no abre hardware; no necesita adaptador, vehículo ni Python. ABS/VDC,
+TPMS, control de crucero, aire acondicionado y preferencias de interfaz están
+desactivados en demo. Los valores no proceden de un vehículo real.
 
 Para el Outback 2010 3.6R, abre primero **Transmission → Information**. Si el ROM
 ID está cubierto, la descripción mostrará **5EAT logger ROM** seguido por el ID.
@@ -106,7 +121,7 @@ activa. No borres memoria para hacer esta prueba.
 - FreeSSM x64 con broker J2534 x86 mediante pipes anónimos, sin puertos TCP/UDP.
 - Detección separada de drivers J2534 registrados en las vistas x86 y x64.
 - Diagnóstico detallado de carga de DLL, apertura, versión y cierre.
-- Modo global `--read-only` para la captura inicial.
+- Selector de sesión: demo, solo lectura recomendado o diagnóstico completo con confirmación.
 - Logger 5EAT con 26 ROM IDs, parámetros específicos y 12 pares de bloques DTC.
 - Selección exacta por los cinco bytes de ROM ID, sin inferir direcciones.
 - Sondeo de campo read-only, limitado exactamente a la ROM B1AB217100, con los
@@ -123,7 +138,9 @@ El botón **Informe del vehículo** consulta motor y transmisión SSM2 en modo d
 solo lectura y permite guardar el resultado en JSON y PDF. El VIN se incluye
 cuando la ECU lo anuncia y FreeSSM puede leerlo; el kilometraje del tablero se
 ingresa manualmente. El informe identifica módulos no consultados y fallos de
-comunicación. La lectura conjunta usa direcciones SSM2 específicas y puede
+comunicación; las definiciones DTC experimentales llevan una advertencia en
+JSON y PDF. La ausencia de esa advertencia no certifica otras definiciones.
+La lectura conjunta usa direcciones SSM2 específicas y puede
 marcar como fallido un módulo que responda por otra dirección o protocolo.
 
 Esta función está probada con ECU simuladas; aún necesita validación con

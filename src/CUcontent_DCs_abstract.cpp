@@ -19,6 +19,7 @@
 
 #include "CUcontent_DCs_abstract.h"
 #include "VehicleReportPdf.h"
+#include "DiagnosticSafety.h"
 #include <QDateTime>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -106,6 +107,7 @@ bool CUcontent_DCs_abstract::startDCreading()
 		rom.status = rom.value.empty() ? VehicleReport::QueryStatus::NotQueried : VehicleReport::QueryStatus::Complete;
 		rom.source = "SSM";
 		_reportCollector->setRomId(rom);
+		_reportCollector->setUnverifiedDtcDefinitions(_SSMPdev->hasUnverifiedDtcDefinitions());
 		if (!_reportButton && layout()) {
 			_reportButton = new QPushButton(tr("Save status report (JSON)"), this);
 			layout()->addWidget(_reportButton);
@@ -539,6 +541,8 @@ void CUcontent_DCs_abstract::saveVehicleReport()
 {
 	if (!_reportCollector) return;
 	VehicleReport::Report report;
+	report.simulated = DiagnosticSafety::isDemo();
+	report.applicationVersion = QCoreApplication::applicationVersion().toStdString();
 	report.capturedAt = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
 	const VehicleReport::Module currentModule = _reportCollector->result();
 	if (currentModule.name == "motor") {

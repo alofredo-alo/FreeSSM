@@ -43,7 +43,9 @@ bool writePdf(const Report& report, const QString& path, QString* error) {
     }
     if (path.isEmpty()) { if (error) *error = QString::fromUtf8("Destino vacío"); return false; }
     QString body = QString::fromUtf8("<h1>Informe de estado del vehículo</h1>");
+    if (report.simulated) body += QString::fromUtf8("<h1>DEMO — DATOS SIMULADOS</h1><p>Este informe no corresponde a un vehículo real.</p>");
     body += QString::fromUtf8("<p><b>Fecha de exportación:</b> ") + html(report.capturedAt) + "</p>";
+    if (!report.applicationVersion.empty()) body += QString::fromUtf8("<p><b>Versión de FreeSSM:</b> ") + html(report.applicationVersion) + "</p>";
     if (!report.declaredModel.empty()) body += QString::fromUtf8("<p><b>Modelo declarado:</b> ") + html(report.declaredModel) + "</p>";
     if (report.declaredYear) body += QString::fromUtf8("<p><b>Año declarado:</b> ") + QString::number(report.declaredYear) + "</p>";
     body += QString::fromUtf8("<p><b>Kilometraje del tablero declarado:</b> ");
@@ -54,6 +56,7 @@ bool writePdf(const Report& report, const QString& path, QString* error) {
         body += QString::fromUtf8("<p><b>Consulta:</b> ") + status(module.status) + "</p>";
         if (!module.source.empty()) body += QString::fromUtf8("<p><b>Fuente:</b> ") + html(module.source) + "</p>";
         body += QString::fromUtf8("<p><b>ROM-ID:</b> ") + reading(module.romId) + "</p>";
+        if (module.unverifiedDtcDefinitions) body += QString::fromUtf8("<p><b>Advertencia: definiciones DTC experimentales no verificadas; el resultado puede ser incompleto o incorrecto.</b></p>");
         if (!module.detail.empty()) body += QString::fromUtf8("<p><b>Detalle:</b> ") + html(module.detail) + "</p>";
         for (const DtcCoverage& group : module.coverage)
             body += QString::fromUtf8("<p><b>Cobertura ") + category(group.category) + ":</b> " + status(group.status) + "</p>";

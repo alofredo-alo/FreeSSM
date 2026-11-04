@@ -19,7 +19,7 @@ class PdfTest(unittest.TestCase):
         self.source = self.path / 'report.json'
         self.output = self.path / 'report.pdf'
         self.report = {
-            'formato_version': '1.0', 'fecha_captura': '2026-11-04T12:30:00-03:00',
+            'formato_version': '1.0', 'simulado': True, 'fecha_captura': '2026-11-04T12:30:00-03:00',
             'vehiculo': {'modelo_declarado': '<Outback>', 'anio_declarado': 2010,
                          'odometro_tablero_km': 185430,
                          'vin': {'estado': 'no_consultada', 'valor': None}},
@@ -27,7 +27,7 @@ class PdfTest(unittest.TestCase):
                 {'nombre': 'motor', 'estado_consulta': 'completa', 'fuente': 'SSM',
                  'rom_id': {'estado': 'completa', 'valor': 'ROM-PRUEBA'},
                  'cobertura_dtc': [{'categoria': 'actual_o_temporal', 'estado': 'completa'}],
-                 'dtc': []},
+                 'definiciones_dtc_no_verificadas': True, 'dtc': []},
                 {'nombre': 'airbag', 'estado_consulta': 'no_consultada', 'fuente': '',
                  'rom_id': {'estado': 'no_consultada', 'valor': None}, 'dtc': None},
             ]}
@@ -44,7 +44,9 @@ class PdfTest(unittest.TestCase):
         self.assertTrue(data.startswith(b'%PDF-'))
         text = subprocess.run(['pdftotext', str(self.output), '-'], check=True, capture_output=True, text=True).stdout
         self.assertIn('<Outback>', text)
+        self.assertIn('DATOS SIMULADOS', text)
         self.assertIn('Sin códigos reportados', text)
+        self.assertIn('definiciones DTC experimentales no verificadas', text)
         self.assertIn('No existe un resultado completo', text)
         second = self.invoke()
         self.assertNotEqual(second.returncode, 0)

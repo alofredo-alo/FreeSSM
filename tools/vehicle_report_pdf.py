@@ -24,11 +24,15 @@ CATEGORIES = {'actual': 'Actual', 'temporal': 'Temporal', 'historico': 'Históri
 def validate(report):
     if not isinstance(report, dict) or report.get('formato_version') != '1.0':
         raise ValueError('Formato JSON no compatible')
+    if not isinstance(report.get('simulado', False), bool):
+        raise ValueError('Indicador de simulación inválido')
     if not isinstance(report.get('vehiculo'), dict) or not isinstance(report.get('modulos'), list):
         raise ValueError('Faltan vehículo o módulos')
     for module in report['modulos']:
         if not isinstance(module, dict) or module.get('estado_consulta') not in STATUSES:
             raise ValueError('Estado de módulo inválido')
+        if not isinstance(module.get('definiciones_dtc_no_verificadas', False), bool):
+            raise ValueError('Indicador de definiciones DTC inválido')
         dtc = module.get('dtc')
         if module['estado_consulta'] == 'completa':
             if not isinstance(dtc, list):
@@ -73,10 +77,15 @@ def render(report, output):
     def row(label, value):
         p('<b>' + text(label) + ':</b> ' + value)
     p('Informe de estado del vehículo', 'Title')
+    if report.get('simulado', False):
+        p('DEMO — DATOS SIMULADOS', 'Heading1')
+        p('Este informe no corresponde a un vehículo real.')
     p('Resultados de las consultas y módulos indicados en este documento.')
     story.append(Spacer(1, 4 * mm))
     vehicle = report['vehiculo']
     row('Fecha', text(report.get('fecha_captura')))
+    if report.get('version_aplicacion'):
+        row('Versión de FreeSSM', text(report['version_aplicacion']))
     row('Modelo declarado', text(vehicle.get('modelo_declarado')))
     row('Año declarado', text(vehicle.get('anio_declarado')))
     row('Kilometraje del tablero declarado', text(vehicle.get('odometro_tablero_km')) + ' km' if vehicle.get('odometro_tablero_km') is not None else 'No informado')
@@ -89,6 +98,8 @@ def render(report, output):
         row('Consulta', text(STATUSES[module['estado_consulta']]))
         row('Fuente', text(module.get('fuente')))
         row('ROM-ID', reading(module.get('rom_id')))
+        if module.get('definiciones_dtc_no_verificadas', False):
+            p('<b>Advertencia: definiciones DTC experimentales no verificadas; el resultado puede ser incompleto o incorrecto.</b>')
         if module.get('detalle'):
             row('Detalle', text(module['detalle']))
         for group in module.get('cobertura_dtc', []):

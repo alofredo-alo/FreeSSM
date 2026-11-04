@@ -24,7 +24,7 @@
 
 const QString CmdLine::helpText =
 "Usage:\n\
-    FreeSSM [--read-only] [-c | --controlunit <CONTROLUNIT> [-f | --function <FUNCTION> [-p | --parameters <PARAMETERS>]]] | [--j2534-probe] | [-h | --help]\n\
+    FreeSSM [--demo | --read-only | --enable-write] [-c | --controlunit <CONTROLUNIT> [-f | --function <FUNCTION> [-p | --parameters <PARAMETERS>]]] | [--j2534-probe] | [-h | --help]\n\
 \n\
 Options:\n\
     -c, --controlunit <CONTROLUNIT>\n\
@@ -63,9 +63,14 @@ Options:\n\
         Enumerate J2534 drivers and test DLL load, PassThruOpen, version read and close.\n\
         Does not connect a protocol channel or transmit vehicle-network messages.\n\
 \n\
+    --demo\n\
+        Open the simulated demo without a diagnostic interface.\n\
+\n\
     --read-only\n\
         Block diagnostic writes, adjustments, actuator tests and memory clearing.\n\
-        Intended for initial fault-code and live-data capture.\n\
+\n\
+    --enable-write\n\
+        Request full diagnostic mode; confirmation is required before enabling writes.\n\
 \n \
 Example:\n\
     FreeSSM -c transmission -f mbssws -p selectionfile=\"/home/users/myMBSWselection_4.list\" autostart\n\

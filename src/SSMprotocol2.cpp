@@ -212,6 +212,7 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ign
 
 			if (FBdefsIface->setTransmissionOBDDiagnosticCodeBlocks(loggerDiagnosticBlocks))
 			{
+				_unverifiedDtcDefinitions = loggerDefinitions.isDiagnosticProbe();
 				if (loggerDefinitions.isDiagnosticProbe())
 				{
 					_supportedMBs.insert(_supportedMBs.end(), loggerMeasuringBlocks.begin(),

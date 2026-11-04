@@ -13,6 +13,8 @@ import sys
 with open(sys.argv[1], encoding='utf-8') as stream:
     report = json.load(stream)
 assert report['formato_version'] == '1.0'
+assert report['simulado'] is False
+assert report['version_aplicacion'] == '1.3.0-beta.1-candidate'
 assert report['vehiculo']['modelo_declarado'] == 'Outback "prueba"\nñ'
 assert report['vehiculo']['odometro_tablero_km'] == 185430
 assert report['vehiculo']['vin']['estado'] == 'no_consultada'
@@ -20,6 +22,8 @@ assert report['vehiculo']['vin']['valor'] is None
 modules = {item['nombre']: item for item in report['modulos']}
 assert modules['motor']['estado_consulta'] == 'completa'
 assert modules['motor']['dtc'] == []
+assert modules['motor']['definiciones_dtc_no_verificadas'] is True
+assert modules['transmision']['definiciones_dtc_no_verificadas'] is False
 assert [g['estado'] for g in modules['motor']['cobertura_dtc']] == ['completa', 'completa']
 assert modules['motor']['rom_id']['valor'] == 'B1AB217100'
 code = modules['transmision']['dtc'][0]

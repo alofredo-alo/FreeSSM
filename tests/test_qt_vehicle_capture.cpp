@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QApplication>
+#include <QProcess>
 #include <QVBoxLayout>
 #include <cassert>
 #include <iostream>
@@ -27,6 +28,7 @@ public:
     explicit FakeProtocol(AbstractDiagInterface* iface) : SSMprotocol(iface) {
         _state = state_normal;
         _CU = CUtype::Engine;
+        _unverifiedDtcDefinitions = true;
     }
     CUsetupResult_dt setupCUdata(enum CUtype) override { return result_success; }
     protocol_dt protocolType() override { return SSM2; }
@@ -68,6 +70,7 @@ int main(int argc, char** argv) {
     assert(module.status == VehicleReport::QueryStatus::Complete);
     assert(module.codes.size() == 1 && module.codes[0].code == "P0001");
     assert(module.romId.value == "ROM-PRUEBA");
+    assert(module.unverifiedDtcDefinitions);
     VehicleReport::Report report;
     report.modules.push_back(module);
     QTemporaryDir temp;
@@ -78,6 +81,11 @@ int main(int argc, char** argv) {
     QFile pdf(pdfPath);
     assert(pdf.open(QIODevice::ReadOnly));
     assert(pdf.read(5) == "%PDF-");
+    QProcess extract;
+    extract.start("pdftotext", QStringList() << pdfPath << "-");
+    assert(extract.waitForFinished() && extract.exitCode() == 0);
+    const QString pdfText = QString::fromUtf8(extract.readAllStandardOutput()).normalized(QString::NormalizationForm_KD).simplified();
+    assert(pdfText.contains("definiciones DTC experimentales no verificadas"));
     protocol.current(true);
     assert(widget.result().status == VehicleReport::QueryStatus::Failed);
     assert(widget.stopDCreading());

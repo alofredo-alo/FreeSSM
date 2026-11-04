@@ -48,7 +48,9 @@ ControlUnitDialog::ControlUnitDialog(QString title, AbstractDiagInterface *diagI
 	setWindowFlags( Qt::Window );
 	// Set window and dialog titles:
 	QString applicationTitle = "FreeSSM " + QApplication::applicationVersion();
-	if (DiagnosticSafety::isReadOnly())
+	if (DiagnosticSafety::isDemo())
+		applicationTitle += " [DEMO - DATOS SIMULADOS]";
+	else if (DiagnosticSafety::isReadOnly())
 		applicationTitle += " [READ-ONLY]";
 	setWindowTitle(applicationTitle + " - " + title);
 	title_label->setText(title);

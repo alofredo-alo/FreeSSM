@@ -92,6 +92,9 @@ bool toJson(const Report& report, std::string* json, std::string* error) {
     std::ostringstream out;
     out << "{\"formato_version\":\"1.0\",\"fecha_captura\":";
     if (report.capturedAt.empty()) out << "null"; else quoted(out, report.capturedAt);
+    out << ",\"simulado\":" << (report.simulated ? "true" : "false");
+    out << ",\"version_aplicacion\":";
+    if (report.applicationVersion.empty()) out << "null"; else quoted(out, report.applicationVersion);
     out << ",\"vehiculo\":{\"modelo_declarado\":";
     if (report.declaredModel.empty()) out << "null"; else quoted(out, report.declaredModel);
     out << ",\"anio_declarado\":";
@@ -108,6 +111,7 @@ bool toJson(const Report& report, std::string* json, std::string* error) {
         out << ",\"fuente\":"; quoted(out, module.source);
         out << ",\"detalle\":"; quoted(out, module.detail);
         out << ",\"rom_id\":"; reading(out, module.romId);
+        out << ",\"definiciones_dtc_no_verificadas\":" << (module.unverifiedDtcDefinitions ? "true" : "false");
         out << ",\"cobertura_dtc\":[";
         for (std::size_t j = 0; j < module.coverage.size(); ++j) {
             if (j) out << ',';

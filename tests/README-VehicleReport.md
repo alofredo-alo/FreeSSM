@@ -145,3 +145,45 @@ reloj monotónico. Para probar la reserva de nombres sin vehículo:
 ```bash
 ./tests/run_measurement_file.sh
 ```
+
+## Decodificador experimental de freeze frame OBD-II
+
+`OBDFreezeFrame` decodifica respuestas Mode 02 ya reensambladas para el DTC y
+un conjunto pequeño de PID. La función verifica servicio, PID, número de frame
+y longitud antes de interpretar valores. Aún no existe transporte OBD-II para
+el informe, no consulta vehículos y los datos no se agregan al PDF o JSON.
+
+```bash
+./tests/run_obd_freeze_frame.sh
+```
+
+La prueba usa tramas ficticias, incluidas respuestas negativas y truncadas; no
+valida comunicación física ni identifica por sí sola qué ECU respondió.
+
+## Decodificador experimental de monitores OBD-II
+
+`OBDReadiness` interpreta una respuesta ya reensamblada de modo 01 PID 01 para
+una ECU: estado de MIL solicitado por la ECU, cantidad reportada de DTC y
+monitores compatibles/completos/incompletos. Conserva los bytes originales y
+usa identificadores por bit para los monitores no continuos: sus nombres
+varían según combustible y año, por lo que no se asignan automáticamente. La
+[EPA documenta las diferencias entre gasolina y diésel](https://www.epa.gov/system/files/documents/2022-08/diesel-obd-im-readiness-14k-pounds-gwr-best-practices.pdf).
+
+Un monitor incompleto no demuestra por sí solo que se borraron códigos. Este
+componente aún no consulta una ECU ni incorpora datos al informe; la prueba
+`./tests/run_obd_readiness.sh` utiliza respuestas ficticias.
+
+## Selector y demo integrada
+
+Después de compilar en Linux, ejecutar:
+
+```sh
+FREESSM_QT_BUILD_DIR=/ruta/al/build ./tests/run_qt_session_mode.sh
+FREESSM_QT_BUILD_DIR=/ruta/al/build ./tests/run_qt_main_startup.sh
+FREESSM_QT_BUILD_DIR=/ruta/al/build ./tests/run_qt_integrated_demo.sh
+```
+
+La prueba usa Qt offscreen y `pdftotext`; comprueba selección y cancelación,
+confirmación del modo completo, apertura de los diálogos originales de motor
+y transmisión y marcas de datos simulados en JSON/PDF. La demo independiente
+prototipo no forma parte de la compilación. No conecta adaptador ni vehículo.

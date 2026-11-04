@@ -46,6 +46,23 @@ jobs:
           .\test_fiveeat_logger.exe .\definitions\5eat_tcu_logger.xml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Test portable report and OBD parsers
+        shell: pwsh
+        run: |
+          g++.exe -std=c++11 -Wall -Wextra -Werror -Isrc tests/test_vehicle_report.cpp src/VehicleReport.cpp src/VehicleReportCollector.cpp -o test_vehicle_report.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\test_vehicle_report.exe | Out-File -Encoding utf8 report-test.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $report = Get-Content -Raw -Encoding utf8 report-test.json | ConvertFrom-Json
+          if (-not $report.modulos[0].definiciones_dtc_no_verificadas) { throw "Missing experimental DTC warning" }
+          foreach ($name in @("readiness", "freeze_frame")) {
+            $source = if ($name -eq "readiness") { "src/OBDReadiness.cpp" } else { "src/OBDFreezeFrame.cpp" }
+            g++.exe -std=c++11 -Wall -Wextra -Werror -Isrc "tests/test_obd_$name.cpp" $source -o "test_obd_$name.exe"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & ".\test_obd_$name.exe"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
       - name: Build FreeSSM x64
         shell: pwsh
         run: |
