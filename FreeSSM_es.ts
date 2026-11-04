@@ -323,6 +323,10 @@ The Control Unit didn&apos;t accept the new value !</source>
 <context>
     <name>CUcontent_DCs_abstract</name>
     <message>
+        <source>Error</source>
+        <translation>Error</translation>
+    </message>
+    <message>
         <source>Save PDF report</source>
         <translation>Guardar informe PDF</translation>
     </message>
