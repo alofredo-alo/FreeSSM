@@ -20,6 +20,11 @@
 #include "FreeSSM.h"
 #include "CmdLine.h"
 #include "DiagnosticSafety.h"
+#include "VehicleReportScan.h"
+#include "VehicleReportPdf.h"
+#include <QSaveFile>
+#include <QInputDialog>
+#include <memory>
 
 
 namespace
@@ -50,6 +55,11 @@ FreeSSM::FreeSSM(QApplication *app)
 	QString appsPath( QCoreApplication::applicationDirPath() );
 	// SETUP GUI:
 	setupUi(this);
+#ifndef SMALL_RESOLUTION
+	_report_button = new QPushButton(tr("Vehicle status report"), centralwidget);
+	_report_button->setGeometry(20, 286, 172, 40);
+	connect(_report_button, SIGNAL(clicked()), this, SLOT(vehicleReport()));
+#endif
 	setWindowFlags( windowFlags() & ~Qt::WindowMaximizeButtonHint );	// only necessary for MS Windows
 #ifndef SMALL_RESOLUTION
 	// LOAD BACKGROUND PICTURE:
@@ -183,6 +193,9 @@ FreeSSM::FreeSSM(QApplication *app)
 			_qt_translator = NULL;
 		}
 	}
+#ifndef SMALL_RESOLUTION
+	_report_button->setText(tr("Vehicle status report"));
+#endif
 	// CHECK THE SAVED INTERFACE SETTINGS AND CORRECT IF NECESSARY:
 	if (savedinterfacetype == QString::number(static_cast<int>(AbstractDiagInterface::interface_type::J2534)))	// J2534-Pass-Through
 	{
@@ -420,6 +433,47 @@ void FreeSSM::aircon(QStringList cmdline_args)
 }
 
 
+#ifndef SMALL_RESOLUTION
+void FreeSSM::vehicleReport()
+{
+	if (_dumping) return;
+	bool accepted = false;
+	const int km = QInputDialog::getInt(this, tr("Vehicle report"),
+		tr("Dashboard mileage in km (-1 if unknown):"), -1, -1, 2000000000, 1, &accepted);
+	if (!accepted) return;
+	std::unique_ptr<AbstractDiagInterface> iface(initInterface());
+	if (!iface) return;
+	VehicleReport::Report report = VehicleReport::scanEngineAndTransmission(iface.get(), _language, _preferSSM2protocolVariantISO14230, this);
+	iface.reset();
+	report.dashboardKm = km;
+	std::string json, jsonError;
+	if (!VehicleReport::toJson(report, &json, &jsonError)) {
+		displayErrorMsg(QString::fromStdString(jsonError)); return;
+	}
+	const QString filename = QFileDialog::getSaveFileName(this, tr("Save status report"), QString(), tr("JSON files (*.json)"));
+	if (filename.isEmpty()) return;
+	QSaveFile file(filename);
+	if (!file.open(QIODevice::WriteOnly) || file.write(json.data(), static_cast<qint64>(json.size())) != static_cast<qint64>(json.size()) || !file.commit()) {
+		displayErrorMsg(tr("Could not save the report.")); return;
+	}
+	const QString pdf = QFileDialog::getSaveFileName(this, tr("Save PDF report"),
+		QFileInfo(filename).absolutePath() + "/" + QFileInfo(filename).completeBaseName() + ".pdf", tr("PDF files (*.pdf)"));
+	if (!pdf.isEmpty()) {
+		const QFileInfo jsonInfo(filename), pdfInfo(pdf);
+		if (jsonInfo.absoluteFilePath() == pdfInfo.absoluteFilePath() ||
+		    (!jsonInfo.canonicalFilePath().isEmpty() && jsonInfo.canonicalFilePath() == pdfInfo.canonicalFilePath())) {
+			displayErrorMsg(tr("JSON and PDF must use different files.")); return;
+		}
+		QString error;
+		if (!VehicleReport::writePdf(report, pdf, &error)) {
+			displayErrorMsg(tr("JSON saved, but PDF generation failed:") + "\n" + error); return;
+		}
+	}
+	QMessageBox::information(this, tr("Vehicle report"), tr("Report saved. Check the status of each module."));
+}
+#endif
+
+
 void FreeSSM::preferences()
 {
 	if (_dumping) return;
@@ -508,6 +562,9 @@ void FreeSSM::retranslate(QString newlanguage, QTranslator *newtranslator)
 	// Install new translator and retranslate:
 	QApplication::installTranslator(_translator);
 	retranslateUi(this);
+#ifndef SMALL_RESOLUTION
+	_report_button->setText(tr("Vehicle status report"));
+#endif
 	// Change translator for Qt-dialogs:
 	if (_qt_translator != NULL)
 	{

@@ -1,4 +1,4 @@
-# FreeSSM con J2534 para Windows x64
+# FreeSSM para Subaru: J2534 e informe de estado
 
 [![Windows J2534 package](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml/badge.svg?branch=master)](https://github.com/alofredo-alo/FreeSSM/actions/workflows/windows-j2534.yml)
 
@@ -117,12 +117,61 @@ activa. No borres memoria para hacer esta prueba.
 - Interfaz seleccionable en español, inglés, alemán y turco.
 - Paquete portable reproducible con Qt 5.15.2, runtimes MinGW, plugins y hashes.
 
+## Informe de estado del vehículo
+
+El botón **Informe del vehículo** consulta motor y transmisión SSM2 en modo de
+solo lectura y permite guardar el resultado en JSON y PDF. El VIN se incluye
+cuando la ECU lo anuncia y FreeSSM puede leerlo; el kilometraje del tablero se
+ingresa manualmente. El informe identifica módulos no consultados y fallos de
+comunicación. La lectura conjunta usa direcciones SSM2 específicas y puede
+marcar como fallido un módulo que responda por otra dirección o protocolo.
+
+Esta función está probada con ECU simuladas; aún necesita validación con
+OpenPort y vehículos reales. No confirma el kilometraje electrónico ni cubre
+ABS/VDC, airbags, tablero o el historial completo de fallas.
+
+La adaptación para macOS es **experimental**: el backend serial pasó pruebas
+con pseudoterminales en Linux, pero todavía no se ha compilado en macOS ni
+validado con hardware. Consulta [README.macOS-experimental.md](README.macOS-experimental.md).
+
+## Agradecimientos y procedencia
+
+Este fork se apoya en el trabajo y la documentación de la comunidad. Gracias a:
+
+- [Comer352L y colaboradores de FreeSSM](https://github.com/Comer352L/FreeSSM),
+  por el proyecto original, los protocolos y las definiciones de diagnóstico.
+- [TomFLV](https://github.com/TomFLV/FreeSSM/commit/e15979e), por la base del
+  broker J2534 para FreeSSM x64, y por la
+  [definición de logger 5EAT](https://github.com/TomFLV/5eat-tcu-reverse-engineering)
+  incluida en este fork bajo MIT; consulta su [licencia](definitions/5eat_tcu_logger.LICENSE.txt)
+  y [procedencia y hash](definitions/README-5EAT-LOGGER.md).
+- [Jacob Seman / Jbsco](https://github.com/Jbsco/FreeSSM), por el
+  [simulador SSM2](https://github.com/Jbsco/FreeSSM/commit/7c9bfca) y la
+  [corrección de respuestas sin eco](https://github.com/Jbsco/FreeSSM/commit/4b452a468ef15a655e9a2c557ceb6fea4bd86d7f).
+  El simulador adaptado conserva su aviso GPL y funciona sin `sudo`.
+- [Marcin Koziej](https://github.com/marcinkoziej/FreeSSM/commit/0392f3a),
+  por el backend serial POSIX que sirve de base al port macOS experimental.
+- [RomRaider](https://www.romraider.com/) y sus colaboradores, por el trabajo
+  comunitario en definiciones y diagnóstico Subaru, y por la referencia para
+  la compatibilidad de lecturas TCU. [SubieScope](https://github.com/marvin-socialista/subiescope)
+  fue una referencia de diseño para el flujo de diagnóstico y el informe.
+- [Lee Thomason y colaboradores de TinyXML-2](https://github.com/leethomason/tinyxml2),
+  cuya biblioteca se distribuye en `src/tinyxml2` con sus avisos originales; y
+  [rudolfovich](https://gist.github.com/rudolfovich/f250900f1a833e715260a66c87369d15),
+  por la referencia del helper CSV indicada en `src/csvfile.h`.
+
+Los avisos de autoría y licencias de cada archivo siguen siendo aplicables.
+Las herramientas y marcas Subaru, Tactrix y demás titulares pertenecen a sus
+respectivos propietarios; este proyecto no cuenta con su respaldo oficial.
+
 ## Documentación
 
 - [Bitácora técnica completa del trabajo realizado](RESUMEN-TRABAJO-CHAT.md)
 - [Guía completa J2534 para Windows en español](README.J2534-Windows.es.md)
 - [J2534 Windows guide in English](README.J2534-Windows.md)
 - [README original de FreeSSM](README.txt)
+- [Formato y pruebas del informe de estado](tests/README-VehicleReport.md)
+- [Soporte macOS experimental](README.macOS-experimental.md)
 
 ## Compilación
 

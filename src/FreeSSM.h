@@ -57,6 +57,9 @@ private:
 	QTranslator *_translator;
 	QLabel *_progtitle_label;
 	QAction *_dump_action;
+#ifndef SMALL_RESOLUTION
+	QPushButton *_report_button;
+#endif
 	bool _dumping;
 
 	AbstractDiagInterface * initInterface();
@@ -83,6 +86,9 @@ private slots:
 	void about();
 	void retranslate(QString newlanguage, QTranslator *newtranslator);
 	void dumpCUdata();
+#ifndef SMALL_RESOLUTION
+	void vehicleReport();
+#endif
 
 };
 

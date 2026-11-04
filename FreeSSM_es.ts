@@ -682,6 +682,14 @@ The Control Unit didn&apos;t accept the new value !</source>
 <context>
     <name>CUcontent_MBsSWs</name>
     <message>
+        <source>Could not create measurement file:</source>
+        <translation>No se pudo crear el archivo de mediciones:</translation>
+    </message>
+    <message>
+        <source>Measurement file:</source>
+        <translation>Archivo de mediciones:</translation>
+    </message>
+    <message>
         <location filename="src/CUcontent_MBsSWs.cpp" line="449"/>
         <source>=&gt; Couldn&apos;t stop Measuring Blocks Reading.</source>
         <translation>=&gt; No se pudo detener la lectura de bloques de medición.</translation>
@@ -1541,6 +1549,58 @@ Si deseas contribuir al proyecto agregando definiciones, contacta a los autores.
 </context>
 <context>
     <name>FreeSSM</name>
+    <message>
+        <source>Reading engine...</source>
+        <translation>Leyendo motor...</translation>
+    </message>
+    <message>
+        <source>Reading transmission...</source>
+        <translation>Leyendo transmisión...</translation>
+    </message>
+    <message>
+        <source>Vehicle status report</source>
+        <translation>Informe del vehículo</translation>
+    </message>
+    <message>
+        <source>Vehicle report</source>
+        <translation>Informe del vehículo</translation>
+    </message>
+    <message>
+        <source>Dashboard mileage in km (-1 if unknown):</source>
+        <translation>Kilometraje del tablero en km (-1 si se desconoce):</translation>
+    </message>
+    <message>
+        <source>Save status report</source>
+        <translation>Guardar informe de estado</translation>
+    </message>
+    <message>
+        <source>JSON files (*.json)</source>
+        <translation>Archivos JSON (*.json)</translation>
+    </message>
+    <message>
+        <source>Could not save the report.</source>
+        <translation>No se pudo guardar el informe.</translation>
+    </message>
+    <message>
+        <source>Save PDF report</source>
+        <translation>Guardar informe PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf)</source>
+        <translation>Archivos PDF (*.pdf)</translation>
+    </message>
+    <message>
+        <source>JSON and PDF must use different files.</source>
+        <translation>El JSON y el PDF deben guardarse en archivos diferentes.</translation>
+    </message>
+    <message>
+        <source>JSON saved, but PDF generation failed:</source>
+        <translation>Se guardó el JSON, pero no fue posible generar el PDF:</translation>
+    </message>
+    <message>
+        <source>Report saved. Check the status of each module.</source>
+        <translation>Informe guardado. Revisa el estado de cada módulo.</translation>
+    </message>
     <message>
         <location filename="src/FreeSSM.cpp" line="156"/>
         <location filename="src/FreeSSM.cpp" line="784"/>

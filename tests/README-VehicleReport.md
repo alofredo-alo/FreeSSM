@@ -58,8 +58,8 @@ lectura debe recibir todos los grupos compatibles antes de considerarse
 completa; una comprobación del sistema incompleta o un error de comunicación
 no se presenta como «sin códigos».
 
-La primera versión no combina automáticamente motor y transmisión y no obtiene
-kilometraje electrónico. La fecha del informe es la fecha de exportación; las
+La exportación desde una pantalla de DTC captura solo ese módulo y no obtiene
+kilometraje electrónico. Para consultar ambos, usa el botón de la ventana principal. La fecha del informe es la fecha de exportación; las
 lecturas provienen de la sesión de códigos activa. Aún no se ha validado el
 flujo contra un vehículo real.
 
@@ -98,3 +98,50 @@ FREESSM_QT_BUILD_DIR=/ruta/al/directorio/de/compilacion ./tests/run_qt_serial_si
 La prueba crea un pseudoterminal, activa el modo de solo lectura y ejercita el
 transporte serial y protocolo SSM2 reales, usando un VIN ficticio y dos DTC
 ficticios con y sin eco. No valida J2534/CAN ni comunicación física.
+
+## Lectura conjunta de motor y transmisión
+
+En la ventana principal, **Informe del vehículo** solicita el kilometraje del
+tablero, consulta motor y transmisión secuencialmente y ofrece JSON y PDF. La
+lectura conjunta restringe las solicitudes a las direcciones SSM2 específicas
+(0x10 y 0x18 en K-line; 0x7E0 y 0x7E1 en CAN) y activa temporalmente la
+política de solo lectura. Si una ECU no responde, se identifica como fallida y
+se conserva la lectura de la otra. No prueba direcciones alternativas ni SSM1:
+un módulo que use otro destino aparecerá como fallido aunque pueda existir.
+
+El VIN se consulta en motor por K-line solo si la ECU lo anuncia; CAN sigue sin
+consultarse por la limitación de la implementación existente. Los demás módulos
+figuran como no consultados. Esta función está probada con ECU simuladas, no con
+OpenPort o vehículos físicos. Para ejecutar la prueba local, después de compilar:
+
+```bash
+FREESSM_QT_BUILD_DIR=/ruta/al/directorio/de/compilacion ./tests/run_qt_report_scan.sh
+```
+
+## Copia con VIN oculto
+
+Para preparar una copia separada para revisar antes de compartir:
+
+```bash
+python3 tools/vehicle_report_redact.py --ocultar-km informe.json informe-compartir.json
+```
+
+El comando oculta el valor del campo VIN y secuencias con forma de VIN en
+valores de texto; opcionalmente quita el kilometraje declarado. No sobrescribe
+el archivo de salida. No elimina nombres de archivos, fechas, modelo, ROM-ID u
+otros datos identificables, y no garantiza anonimato: revisa la copia antes de
+compartirla. El campo `datos_ocultados` deja constancia de la transformación.
+La prueba es `python3 -B tests/test_vehicle_report_redact.py`.
+
+## Registro CSV de mediciones
+
+Al iniciar la lectura de bloques de medición, FreeSSM reserva un nuevo archivo
+`measurements_YYYYMMDD_HHMMSS_XXXXXX.csv` en el directorio de trabajo, sin
+sobrescribir el antiguo `measurements.csv` ni otras sesiones. La ruta aparece en
+la descripción emergente del botón de inicio/parada. Las columnas de tiempo
+contienen segundos Unix y segundos transcurridos; el tiempo transcurrido usa un
+reloj monotónico. Para probar la reserva de nombres sin vehículo:
+
+```bash
+./tests/run_measurement_file.sh
+```

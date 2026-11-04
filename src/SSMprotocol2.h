@@ -41,7 +41,7 @@ public:
 	~SSMprotocol2();
 	// NON-COMMUNICATION-FUNCTIONS:
 	CUsetupResult_dt setupCUdata(enum CUtype CU);
-	CUsetupResult_dt setupCUdata(enum CUtype CU, bool ignoreIgnitionOFF=false);
+	CUsetupResult_dt setupCUdata(enum CUtype CU, bool ignoreIgnitionOFF=false, bool strictAddress=false);
 	protocol_dt protocolType() { return SSM2; }
 	bool hasVINsupport(bool *VINsup);
 	bool hasIntegratedCC(bool *CCsup);

@@ -206,10 +206,11 @@ class EngineModel:
 
 
 class FakeECU:
-	def __init__(self, master_fd, model, echo, realtime, verbose, dtc=False, vin=False):
+	def __init__(self, master_fd, model, echo, realtime, verbose, dtc=False, vin=False, transmission=False):
 		self._fd = master_fd
 		self._model = model
 		self._echo = echo
+		self._transmission = transmission
 		self._realtime = realtime
 		self._verbose = verbose
 		self._flagbytes = bytearray(build_flagbytes())
@@ -257,13 +258,13 @@ class FakeECU:
 		del buf[:msg_len]
 		if self._verbose:
 			print("rx: " + msg.hex(" "))
-		if (msg[1] != ECU_ADDR) or (msg[2] != TESTER_ADDR):
+		if (msg[1] not in ((ECU_ADDR, 0x18) if self._transmission else (ECU_ADDR,))) or (msg[2] != TESTER_ADDR):
 			return True	# message for another control unit => no answer
 		if self._echo:
 			os.write(self._fd, msg)	# K-line: the tester receives its own message
 		response = self._handle_request(msg[4:-1])
 		if response is not None:
-			self._send(response)
+			self._send(response, msg[1])
 		return True
 
 	def _handle_request(self, req):
@@ -289,8 +290,8 @@ class FakeECU:
 			print("unsupported request: " + req.hex(" "))
 		return None
 
-	def _send(self, data):
-		msg = bytes([0x80, TESTER_ADDR, ECU_ADDR, len(data)]) + data
+	def _send(self, data, address):
+		msg = bytes([0x80, TESTER_ADDR, address, len(data)]) + data
 		msg += bytes([checksum(msg)])
 		if self._realtime:
 			time.sleep(0.005 + len(msg) * 10 / BAUDRATE)	# transmission time on a real K-line
@@ -306,6 +307,7 @@ def main():
 	parser.add_argument("--fast", action="store_true", help="answer immediately instead of simulating the 4800 baud transmission time")
 	parser.add_argument("--dtc", action="store_true", help="advertise synthetic OBD DTC groups")
 	parser.add_argument("--vin", action="store_true", help="advertise a fictional VIN")
+	parser.add_argument("--transmission", action="store_true", help="also emulate a transmission on address 0x18")
 	parser.add_argument("-v", "--verbose", action="store_true", help="print all messages")
 	args = parser.parse_args()
 
@@ -317,7 +319,7 @@ def main():
 	print("Fake ECU (ROM-ID %s) is listening on %s" % (ROM_ID.hex(" ").upper(), slave_name), flush=True)
 	print("Press Ctrl+C to stop.", flush=True)
 
-	ecu = FakeECU(master_fd, EngineModel(), not args.no_echo, not args.fast, args.verbose, args.dtc, args.vin)
+	ecu = FakeECU(master_fd, EngineModel(), not args.no_echo, not args.fast, args.verbose, args.dtc, args.vin, args.transmission)
 	last_report = time.monotonic()
 	last_count = 0
 	try:

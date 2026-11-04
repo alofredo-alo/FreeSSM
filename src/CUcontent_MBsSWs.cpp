@@ -18,6 +18,10 @@
  */
 
 #include "CUcontent_MBsSWs.h"
+#include "MeasurementFile.h"
+#include <QDateTime>
+#include <QDir>
+#include <exception>
 
 
 
@@ -365,10 +369,25 @@ bool CUcontent_MBsSWs::startMBSWreading()
 		goto err;
 
 	// store start time
-	startTime = std::chrono::high_resolution_clock::now();
+	startTime = std::chrono::steady_clock::now();
 
-	// create csv object and write header
-	csv = new csvfile("measurements.csv");
+	// Reserve a unique file before opening it; never truncate earlier measurements.
+	{
+		QString csvPath, csvError;
+		if (!MeasurementFile::reserve(QDir::currentPath(), &csvPath, &csvError)) {
+			_SSMPdev->stopMBSWreading();
+			errorMsg(tr("Error"), tr("Could not create measurement file:") + "\n" + csvError);
+			return false;
+		}
+		try {
+			csv = new csvfile(csvPath.toStdString());
+		} catch (const std::exception& error) {
+			_SSMPdev->stopMBSWreading();
+			errorMsg(tr("Error"), tr("Could not create measurement file:") + "\n" + QString::fromLocal8Bit(error.what()));
+			return false;
+		}
+		startstopmbreading_pushButton->setToolTip(tr("Measurement file:") + " " + csvPath);
+	}
 
 	// global time
 	*csv << "Time";
@@ -453,6 +472,7 @@ bool CUcontent_MBsSWs::stopMBSWreading()
 	disconnect( _SSMPdev, SIGNAL( newMBSWrawValues(const std::vector<unsigned int>&, int) ), this, SLOT( processMBSWRawValues(const std::vector<unsigned int>&, int) ) );
 	// close csv files (also flushes csv)
 	delete csv;
+	csv = nullptr;
 	// Set text+icon of start/stop-button:
 	labelStartStopButtonReadyForStart();
 	// Enable delete button if MBs/SWs are selected on the table:
@@ -758,12 +778,11 @@ void CUcontent_MBsSWs::processMBSWRawValues(const std::vector<unsigned int>& raw
 	// write to csv
 	
 	// get timestamp	
-	const auto currTime = std::chrono::high_resolution_clock::now();
+	const auto currTime = std::chrono::steady_clock::now();
 	const std::chrono::duration<double> deltaTime = currTime - startTime;
 
 	// conver to unix epoch time in ms
-	const double unixEpochMs = std::chrono::duration_cast<std::chrono::milliseconds>
-		(currTime.time_since_epoch()).count() / 1000.0;
+	const double unixEpochMs = QDateTime::currentMSecsSinceEpoch() / 1000.0;
 	const double deltaEpochMs = std::chrono::duration_cast<std::chrono::milliseconds>
 		(deltaTime).count() / 1000.0;
 

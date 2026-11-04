@@ -54,7 +54,7 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU)
 }
 
 
-SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ignoreIgnitionOFF)
+SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ignoreIgnitionOFF, bool strictAddress)
 {
 	unsigned int CUaddress = 0x0;
 	SSMFlagbyteDefinitionsInterface *FBdefsIface;
@@ -97,6 +97,10 @@ SSMprotocol::CUsetupResult_dt SSMprotocol2::setupCUdata(enum CUtype CU, bool ign
 	// Get control unit data:
 	if (!SSMP2com->getCUdata(_ssmCUdata))
 	{
+		if (strictAddress) {
+			delete SSMP2com;
+			goto commError;
+		}
 		if (_diagInterface->protocolType() == AbstractDiagInterface::protocol_type::SSM2_ISO14230)
 		{
 			SSMP2com->setCUaddress(0x01);
