@@ -168,6 +168,10 @@ jobs:
             "5eat_tcu_logger.xml.sha256=$loggerHash"
           ) | Set-Content -Encoding ascii (Join-Path $dist "BUILD-INFO.txt")
 
+      - name: Smoke-test packaged Windows application
+        shell: pwsh
+        run: ./scripts/smoke-beta-windows.ps1 -PackagePath ./dist/FreeSSM-J2534-x64
+
       - name: Upload Windows ZIP
         uses: actions/upload-artifact@v4
         with:
